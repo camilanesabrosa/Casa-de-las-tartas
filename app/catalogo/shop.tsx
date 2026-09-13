@@ -201,7 +201,7 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
               const Icon = icons[p.category] || Package;
               return (
                 <article className="panel catalog-product" key={p.id}>
-                  <ProductPhoto imageUrl={p.imageUrl} category={p.category} name={p.name} />
+                  <ProductPhoto imageUrl={p.imageUrl} name={p.name} variety={p.variety} />
                   <span className="category-label">
                     <Icon />
                     {p.category}

@@ -47,7 +47,9 @@ Es una demostración para validar el alcance, no una entrega lista para manejar 
 
 El piloto guarda el conjunto de datos en un documento D1 con revisión, hasta 1 MB y 500 variedades. Para uso sostenido debe migrarse a tablas por entidad. Los respaldos JSON se descargan, pero su recuperación todavía requiere asistencia técnica. No hay facturación fiscal, pagos online, fiado, recetas, lotes, vencimientos ni integración con balanzas. El saldo mostrado suma todos los medios de pago, sin conciliación bancaria ni cierre de efectivo por caja.
 
-Las cuatro fotos de categoría se generaron para la muestra y están rotuladas como ilustrativas. Cada producto admite un enlace HTTPS a su foto propia desde el formulario de edición; si falta o falla, usa la foto de categoría. Todavía no se suben archivos desde el dispositivo. Los rellenos del listado son sugerencias al cargar un artículo; no se atribuyen automáticamente a las pastas.
+Los 25 artículos tienen fotos ilustrativas individuales en `public/photos/products/`, generadas con la herramienta integrada imagegen. Las instrucciones usadas se conservan en `docs/product-photo-prompts.json`. La selección se hace por nombre y, cuando el relleno es visible, por variedad, en `lib/product-photos.ts`. Se distinguen pollo, pescado, soja, tipos de papa y formas de pasta. Fernando confirmó Yogurlac como pote de yogur con cereales y banana, y Mendosoja como milanesa de soja.
+
+Cada producto admite un enlace HTTPS a su foto propia desde el formulario de edición. Esa foto tiene prioridad; si falta o falla, usa la ilustrativa del artículo. Los artículos o rellenos sin coincidencia muestran “Foto pendiente”, sin asignarles una imagen de otra comida. La vista previa del editor sigue los cambios de nombre y variedad. Todavía no se suben archivos desde el dispositivo. Los rellenos del listado son sugerencias al cargar un artículo; no se atribuyen automáticamente a las pastas.
 
 ## Estructura
 

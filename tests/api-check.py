@@ -38,7 +38,7 @@ assert call(cookie='mostrador_demo_session=' + 'f' * 64)[0] == 401
 status, root, _, root_url = call('/')
 assert status == 200 and root_url == ORIGIN + '/'
 assert 'Tu próxima comida' in root and 'Administración' in root and 'Medallón de pollo' in root
-assert '/photos/precocidos.jpg' in root
+assert '/photos/products/medallon-pollo-jamon-queso.jpg' in root
 assert call('/catalogo')[3] == ORIGIN + '/'
 assert call('/admin')[3] == ORIGIN + '/admin/login'
 assert call('/api/session', 'POST', {**credentials, 'password': 'incorrecta'})[0] == 401

@@ -199,6 +199,8 @@ export function ProductEditor({
   const [unit, setUnit] = useState(product?.unit || "unit");
   const [category, setCategory] = useState(product?.category || "Pastas");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
+  const [productName, setProductName] = useState(product?.name || "");
+  const [variety, setVariety] = useState(product?.variety || "");
   return (
     <Modal
       title={product ? "Editar producto" : "Nuevo producto"}
@@ -230,17 +232,18 @@ export function ProductEditor({
           })
         }
       >
-        <Field
-          label="Nombre del producto"
-          name="name"
-          defaultValue={product?.name}
-        />
+        <label className="field">
+          <span>Nombre del producto</span>
+          <Input name="name" className="field-input" value={productName}
+            onChange={(event) => setProductName(event.target.value)} required />
+        </label>
         <label className="field">
           <span>Variedad o relleno · opcional</span>
           <Input
             name="variety"
             className="field-input"
-            defaultValue={product?.variety}
+            value={variety}
+            onChange={(event) => setVariety(event.target.value)}
             list="variety-options"
           />
           <datalist id="variety-options">
@@ -322,9 +325,9 @@ export function ProductEditor({
           <span>Enlace de la foto · opcional</span>
           <Input className="field-input" type="url" name="imageUrl" value={imageUrl}
             onChange={(event) => setImageUrl(event.target.value)} placeholder="https://…" maxLength={2048} />
-          <small>Usá el enlace directo a una imagen. Si lo dejás vacío, mostramos una foto ilustrativa de la categoría.</small>
+          <small>Usá el enlace directo a una imagen. Si lo dejás vacío, mostramos la foto ilustrativa de este producto, cuando está disponible.</small>
         </label>
-        <div className="product-photo-preview"><ProductPhoto imageUrl={imageUrl.startsWith("https://") ? imageUrl : undefined} category={category} name={product?.name || "Vista previa del producto"} /></div>
+        <div className="product-photo-preview"><ProductPhoto imageUrl={imageUrl.startsWith("https://") ? imageUrl : undefined} name={productName} variety={variety} /></div>
         <label className="check-field">
           <input
             type="checkbox"
