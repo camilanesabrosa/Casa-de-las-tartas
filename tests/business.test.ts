@@ -10,7 +10,7 @@ test("el catálogo solo expone productos publicados y campos públicos", () => {
   const catalog = publicCatalog(b);
   assert.equal(catalog.products.length, 24);
   assert.ok(!catalog.products.some((p) => p.id === b.products[0].id));
-  assert.equal(catalog.products[0].imageUrl, b.products[1].imageUrl);
+  assert.equal(catalog.products.find((p) => p.id === b.products[1].id)?.imageUrl, b.products[1].imageUrl);
   assert.deepEqual(Object.keys(catalog).sort(), ["products", "settings"]);
   assert.ok(catalog.products.every((p) => !("cost" in p) && !("minimum" in p)));
 });

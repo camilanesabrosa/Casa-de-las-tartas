@@ -63,8 +63,9 @@ assert save({'type': 'product', 'product': product}, business)[0] == 409
 assert call(cookie=second_cookie)[1]['products'][0]['price'] == 987654
 status, catalog, _, _ = call('/api/business?catalog=1')
 assert status == 200 and set(catalog) == {'settings', 'products'}
-assert catalog['products'][0]['price'] == 987654
-assert catalog['products'][0]['imageUrl'] == product['imageUrl']
+catalog_product = next(p for p in catalog['products'] if p['id'] == product['id'])
+assert catalog_product['price'] == 987654
+assert catalog_product['imageUrl'] == product['imageUrl']
 assert all(set(p) <= {'id', 'name', 'variety', 'category', 'unit', 'price', 'stock', 'imageUrl'} for p in catalog['products'])
 
 status, hidden, _, _ = save({'type': 'product', 'product': {**product, 'published': False}}, updated)

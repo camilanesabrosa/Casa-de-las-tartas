@@ -24,6 +24,7 @@ import {
 } from "@/lib/business";
 import { CartLines, type CartItem } from "../components";
 import type { CatalogProduct, CatalogData } from "@/lib/catalog";
+import { isNewCatalogProduct } from "@/lib/catalog";
 import ProductPhoto from "./product-photo";
 export default function Catalog({ initialData }: { initialData?: CatalogData }) {
   const [data, setData] = useState<CatalogData | null>(initialData || null);
@@ -199,16 +200,20 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
           <div className="catalog-products">
             {filtered.map((p) => {
               const Icon = icons[p.category] || Package;
+              const isNew = isNewCatalogProduct(p);
               return (
-                <article className="panel catalog-product" key={p.id}>
-                  <ProductPhoto imageUrl={p.imageUrl} name={p.name} variety={p.variety} />
+                <article className={`panel catalog-product${isNew ? " catalog-product-new" : ""}`} key={p.id}>
+                  <div className="catalog-product-photo">
+                    <ProductPhoto imageUrl={p.imageUrl} name={p.name} variety={p.variety} />
+                    {isNew && <span className="catalog-new-badge">Nuevo producto</span>}
+                  </div>
                   <span className="category-label">
                     <Icon />
                     {p.category}
                   </span>
                   <h2>{p.name}</h2>
                   <p className="variety">
-                    {p.variety || "Consultá las variedades disponibles"}
+                    {p.variety || (isNew ? "Presentación individual" : "Consultá las variedades disponibles")}
                   </p>
                   <div className="catalog-price">
                     <strong>{money(p.price)}</strong>
@@ -222,7 +227,7 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
                       : "Sin stock por el momento"}
                   </span>
                   <Button
-                    className="btn"
+                    className={`btn${isNew ? " primary" : ""}`}
                     onClick={() => add(p)}
                     disabled={p.stock <= 0}
                   >

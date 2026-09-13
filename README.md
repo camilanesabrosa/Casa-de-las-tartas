@@ -51,6 +51,8 @@ Los 25 artículos tienen fotos ilustrativas individuales en `public/photos/produ
 
 Cada producto admite un enlace HTTPS a su foto propia desde el formulario de edición. Esa foto tiene prioridad; si falta o falla, usa la ilustrativa del artículo. Los artículos o rellenos sin coincidencia muestran “Foto pendiente”, sin asignarles una imagen de otra comida. La vista previa del editor sigue los cambios de nombre y variedad. Todavía no se suben archivos desde el dispositivo. Los rellenos del listado son sugerencias al cargar un artículo; no se atribuyen automáticamente a las pastas.
 
+En el catálogo, Yogurlac se presenta como “Yogur con cereales y banana”, aparece primero y lleva la etiqueta “Nuevo producto”. Conserva el mismo artículo, precio y stock; el nombre descriptivo también se usa en el pedido. Al ocultarlo desde administración deja de aparecer, incluido el destacado.
+
 ## Estructura
 
 - `lib/business.ts`: tipos, datos de muestra y cálculos de presentación.
