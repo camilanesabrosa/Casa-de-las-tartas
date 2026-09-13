@@ -8,9 +8,9 @@ export type CatalogData = {
   products: CatalogProduct[];
 };
 
-export const NEW_PRODUCT_NAME = "Yogur con cereales y banana";
+export const NEW_PRODUCT_NAME = "Leche con cereales y banana";
 export const isNewCatalogProduct = (product: Pick<Product, "name">) =>
-  ["yogurlac", NEW_PRODUCT_NAME.toLowerCase()].includes(product.name.trim().toLowerCase());
+  ["yogurlac", "yogur con cereales y banana", NEW_PRODUCT_NAME.toLowerCase()].includes(product.name.trim().toLowerCase());
 
 export function publicCatalog(data: Business): CatalogData {
   return {

@@ -18,8 +18,9 @@ const plainPhotos: Record<string, ProductPhoto> = {
   "noquis": photo("noquis", "Ñoquis de papa con estrías de tenedor"),
   "canelones": photo("canelones", "Canelones enrollados con salsa de tomate y queso"),
   "ensaladas": photo("ensaladas", "Ensalada con lechuga, tomate, zanahoria y pepino"),
-  "yogurlac": photo("yogurlac-cereales-banana", "Pote de yogur con cereales y rodajas de banana", "png"),
-  "yogur con cereales y banana": photo("yogurlac-cereales-banana", "Pote de yogur con cereales y rodajas de banana", "png"),
+  "yogurlac": photo("yogurlac-cereales-banana", "Pote de leche con cereales y rodajas de banana", "png"),
+  "yogur con cereales y banana": photo("yogurlac-cereales-banana", "Pote de leche con cereales y rodajas de banana", "png"),
+  "leche con cereales y banana": photo("yogurlac-cereales-banana", "Pote de leche con cereales y rodajas de banana", "png"),
   "mendosoja": photo("mendosoja-milanesa", "Milanesas de soja rebozadas"),
   "milanesa de pollo": photo("milanesa-pollo", "Milanesas de pechuga de pollo, finas y rebozadas"),
 };
