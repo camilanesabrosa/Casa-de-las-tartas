@@ -1800,9 +1800,15 @@ td small {
   .catalog-top { flex-wrap: wrap; gap: 0; padding-bottom: 16px; }
   .catalog-top .brand { flex: 1; min-width: 0; font-size: 20px; overflow-wrap: anywhere; }
   .catalog-admin-link svg { display: none; }
-  .catalog-products { grid-template-columns: 1fr; }
-  .catalog-product { padding: 20px; }
-  .catalog-product h2 { font-size: 22px; }
+  .catalog-products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .catalog-product { padding: 12px; gap: 8px; }
+  .catalog-product h2 { font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+  .catalog-product .variety { line-height: 1.4; overflow-wrap: anywhere; }
+  .catalog-price { padding-top: 8px; }
+  .catalog-price strong { font-size: 22px; }
+  .catalog-product > .btn { height: auto; min-height: 44px; white-space: normal; line-height: 1.3; }
+  .catalog-product > .btn svg { display: none; }
+  .catalog-new-badge { top: 8px; right: 8px; max-width: calc(100% - 16px); padding: 4px 8px; font-size: 12px; text-align: center; }
 }
 
 .data-table [data-slot="table-row"] {
