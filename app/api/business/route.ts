@@ -1,30 +1,18 @@
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { getDemoSession, sameOrigin } from "@/app/demo-auth";
+import { DEMO_BUSINESS_ID } from "@/lib/demo-account";
+import { readCatalog } from "@/db/catalog-store";
 import { readBusiness, updateBusiness } from "@/db/business-store";
 import { z } from "zod";
 export const dynamic = "force-dynamic";
 const respond = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 export async function GET(request: Request) {
-  const user = await getChatGPTUser();
-  if (!user)
-    return respond({ error: "Iniciá sesión para abrir el negocio." }, 401);
   try {
-    const data = await readBusiness(user.userId);
     if (new URL(request.url).searchParams.get("catalog") === "1")
-      return respond({
-        settings: data.settings,
-        products: data.products
-          .filter((p) => p.published)
-          .map(({ id, name, variety, category, unit, price, stock }) => ({
-            id,
-            name,
-            variety,
-            category,
-            unit,
-            price,
-            stock,
-          })),
-      });
+      return respond(await readCatalog());
+    if (!(await getDemoSession()))
+      return respond({ error: "Iniciá sesión para abrir el negocio." }, 401);
+    const data = await readBusiness(DEMO_BUSINESS_ID);
     const { completedRequests, ...safe } = data;
     return respond(safe);
   } catch (error) {
@@ -36,15 +24,13 @@ export async function GET(request: Request) {
   }
 }
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
-  if (!user)
-    return respond({ error: "Iniciá sesión para guardar cambios." }, 401);
-  const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(request.url).host)
+  if (!sameOrigin(request))
     return respond({ error: "Solicitud no permitida." }, 403);
   if (Number(request.headers.get("content-length") || 0) > 30000)
     return respond({ error: "La solicitud es demasiado grande." }, 413);
   try {
+    if (!(await getDemoSession()))
+      return respond({ error: "Iniciá sesión para guardar cambios." }, 401);
     const raw = await request.text();
     if (raw.length > 30000)
       return respond({ error: "La solicitud es demasiado grande." }, 413);
@@ -56,7 +42,7 @@ export async function POST(request: Request) {
       })
       .parse(JSON.parse(raw));
     const { completedRequests, ...next } = await updateBusiness(
-      user.userId,
+      DEMO_BUSINESS_ID,
       body.version,
       body.requestId,
       body.action,

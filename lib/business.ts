@@ -9,6 +9,7 @@ export type Product = {
   stock: number;
   minimum: number;
   published: boolean;
+  imageUrl?: string;
 };
 export type Line = {
   productId: string;

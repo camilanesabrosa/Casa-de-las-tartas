@@ -36,6 +36,7 @@ import {
   varieties,
 } from "@/lib/business";
 import { type Action } from "@/lib/actions";
+import ProductPhoto from "./catalogo/product-photo";
 export type Save = (a: Action) => Promise<void>;
 export const displayDate = (date: string) =>
   new Intl.DateTimeFormat("es-AR", {
@@ -197,6 +198,7 @@ export function ProductEditor({
 }) {
   const [unit, setUnit] = useState(product?.unit || "unit");
   const [category, setCategory] = useState(product?.category || "Pastas");
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   return (
     <Modal
       title={product ? "Editar producto" : "Nuevo producto"}
@@ -223,6 +225,7 @@ export function ProductEditor({
                 num(f, "minimum") * (unit === "unit" ? 1000 : 1),
               ),
               published: f.get("published") === "on",
+              imageUrl,
             },
           })
         }
@@ -315,6 +318,13 @@ export function ProductEditor({
             }
           />
         </div>
+        <label className="field">
+          <span>Enlace de la foto · opcional</span>
+          <Input className="field-input" type="url" name="imageUrl" value={imageUrl}
+            onChange={(event) => setImageUrl(event.target.value)} placeholder="https://…" maxLength={2048} />
+          <small>Usá el enlace directo a una imagen. Si lo dejás vacío, mostramos una foto ilustrativa de la categoría.</small>
+        </label>
+        <div className="product-photo-preview"><ProductPhoto imageUrl={imageUrl.startsWith("https://") ? imageUrl : undefined} category={category} name={product?.name || "Vista previa del producto"} /></div>
         <label className="check-field">
           <input
             type="checkbox"

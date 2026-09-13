@@ -14,6 +14,13 @@ const productSchema = z.object({
   stock: amount,
   minimum: amount,
   published: z.boolean(),
+  imageUrl: z.string().trim().max(2048).refine((value) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && !url.username && !url.password;
+    } catch { return false; }
+  }, "Usá un enlace de imagen que empiece con https://.").optional(),
 });
 export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("product"), product: productSchema }),

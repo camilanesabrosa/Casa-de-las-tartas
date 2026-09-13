@@ -2,6 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createDemo, lineTotal, summary } from "../lib/business";
 import { applyAction } from "../lib/actions";
+import { publicCatalog } from "../lib/catalog";
+test("el catálogo solo expone productos publicados y campos públicos", () => {
+  const b = createDemo();
+  b.products[0].published = false;
+  b.products[1].imageUrl = "https://example.com/medallon.jpg";
+  const catalog = publicCatalog(b);
+  assert.equal(catalog.products.length, 24);
+  assert.ok(!catalog.products.some((p) => p.id === b.products[0].id));
+  assert.equal(catalog.products[0].imageUrl, b.products[1].imageUrl);
+  assert.deepEqual(Object.keys(catalog).sort(), ["products", "settings"]);
+  assert.ok(catalog.products.every((p) => !("cost" in p) && !("minimum" in p)));
+});
+test("editar fotos acepta HTTPS y rechaza contenido ejecutable o incrustado", () => {
+  const b = createDemo();
+  for (const imageUrl of ["javascript:alert(1)", "data:image/svg+xml,abc", "http://example.com/a.jpg", "https://user:pass@example.com/a.jpg"]) {
+    assert.throws(() => applyAction(b, { type: "product", product: { ...b.products[0], imageUrl } }));
+  }
+  const next = applyAction(b, { type: "product", product: { ...b.products[0], imageUrl: "https://example.com/a.jpg" } });
+  assert.equal(next.products[0].imageUrl, "https://example.com/a.jpg");
+});
 test("250 gramos se cobran a un cuarto del precio por kilo, con redondeo al centavo", () => {
   assert.equal(lineTotal(850000, 250), 212500);
   assert.equal(lineTotal(999, 333), 333);

@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import {
   Store,
-  ArrowLeft,
+  Settings2,
+  ArrowDown,
   Plus,
   Search,
   Package,
@@ -17,23 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  type Product,
-  type Business,
   money,
   quantityLabel,
   lineTotal,
 } from "@/lib/business";
 import { CartLines, type CartItem } from "../components";
-type CatalogProduct = Pick<
-  Product,
-  "id" | "name" | "variety" | "category" | "unit" | "price" | "stock"
->;
-type CatalogData = {
-  settings: Business["settings"];
-  products: CatalogProduct[];
-};
-export default function Catalog() {
-  const [data, setData] = useState<CatalogData | null>(null);
+import type { CatalogProduct, CatalogData } from "@/lib/catalog";
+import ProductPhoto from "./product-photo";
+export default function Catalog({ initialData }: { initialData?: CatalogData }) {
+  const [data, setData] = useState<CatalogData | null>(initialData || null);
   const [error, setError] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [q, setQ] = useState("");
@@ -47,6 +40,7 @@ export default function Catalog() {
       const j = (await r.json()) as CatalogData & { error?: string };
       if (!r.ok) throw new Error(j.error);
       setData(j);
+      setCart((current) => current.filter((item) => j.products.some((p) => p.id === item.productId)));
       setError("");
     } catch (e) {
       setError(
@@ -55,7 +49,10 @@ export default function Catalog() {
     }
   }
   useEffect(() => {
-    void load();
+    if (!initialData) void load();
+    const refresh = () => { if (document.visibilityState === "visible") void load(); };
+    document.addEventListener("visibilitychange", refresh);
+    return () => document.removeEventListener("visibilitychange", refresh);
   }, []);
   useEffect(() => {
     if (!feedback) return;
@@ -117,7 +114,8 @@ export default function Catalog() {
   }
   const message = `Hola, soy ${name.trim()}. Quisiera hacer este pedido:\n\n${cart
     .map((i) => {
-      const p = data.products.find((p) => p.id === i.productId)!;
+      const p = data.products.find((p) => p.id === i.productId);
+      if (!p) return "";
       return `• ${p.name}${p.variety ? " · " + p.variety : ""}: ${quantityLabel(i.quantity, p.unit)} — ${money(lineTotal(p.price, i.quantity))}`;
     })
     .join(
@@ -137,19 +135,19 @@ export default function Catalog() {
   return (
     <main className="catalog-page">
       <header className="catalog-top">
-        <a href="/catalogo" className="brand">
+        <a href="/" className="brand">
           <span className="brand-mark">
             <Store />
           </span>
           {data.settings.name}
         </a>
-        <a className="text-link" href="/">
-          <ArrowLeft />
-          Volver al negocio
+        <a className="btn catalog-admin-link" href="/admin">
+          <Settings2 />
+          Administración
         </a>
       </header>
       <div className="catalog-preview">
-        <span>Vista previa del catálogo · Precios y cantidades de ejemplo</span>
+        <span>Catálogo de muestra · Precios de ejemplo</span>
         <span>El pedido se confirma por WhatsApp</span>
       </div>
       <section className="catalog-hero">
@@ -163,16 +161,19 @@ export default function Catalog() {
             Precocidos, congelados, pastas y más. Elegí por unidad o llevá la
             cantidad que necesitás.
           </p>
+          <a className="btn primary hero-cta" href="#productos">Explorar productos <ArrowDown /></a>
         </div>
         <img
-          src="/catalogo.jpg"
-          alt="Ensalada con quinoa y palta, granola y limonada. Imagen ilustrativa."
-          width="768"
-          height="512"
+          src="/photos/pastas.jpg"
+          alt="Ravioles, tallarines, ñoquis y canelones. Foto ilustrativa."
+          width="960"
+          height="720"
+          fetchPriority="high"
         />
       </section>
       <div className="catalog-content">
-        <section aria-label="Productos del catálogo">
+        <section id="productos" aria-label="Productos del catálogo">
+          <div className="catalog-section-heading"><h2>Elegí para tu mesa</h2><p>{data.products.length} productos · Precios en pesos argentinos</p></div>
           <div className="search-control">
             <Search />
             <Input
@@ -200,6 +201,7 @@ export default function Catalog() {
               const Icon = icons[p.category] || Package;
               return (
                 <article className="panel catalog-product" key={p.id}>
+                  <ProductPhoto imageUrl={p.imageUrl} category={p.category} name={p.name} />
                   <span className="category-label">
                     <Icon />
                     {p.category}

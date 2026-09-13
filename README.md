@@ -1,10 +1,16 @@
 # Mostrador
 
-Primera versión privada para revisar un sistema de ventas, productos, stock, proveedores, gastos y catálogo de un negocio gastronómico. Soporta unidades enteras y peso en gramos, con precio por kilo. Los 25 nombres de artículos y 13 variedades se transcribieron del listado aportado por Fernando; precios y movimientos son ejemplos.
+Muestra de ventas, productos, stock, proveedores, gastos y catálogo de un negocio gastronómico. El catálogo público es la página principal; la administración está en `/admin`. Soporta unidades enteras y peso en gramos, con precio por kilo. Los 25 nombres de artículos y 13 variedades se transcribieron del listado aportado por Fernando; precios y movimientos son ejemplos.
+
+## Acceso de prueba
+
+Usuario: `demo@mostrador.test`. Contraseña: `Mostrador123!`. Se muestran en `/admin/login` y están precargados para facilitar la demostración. Esta cuenta es pública por diseño y solo sirve para datos ficticios. Todos los visitantes de la muestra ven el mismo catálogo y quienes ingresan con la cuenta de prueba pueden editarlo.
+
+Las sesiones duran 8 horas, usan cookies HttpOnly y SameSite=Lax, y llevan Secure en HTTPS. D1 guarda únicamente hashes de los tokens aleatorios. El servidor exige sesión para leer administración y guardar cambios, y comprueba el origen en cada escritura. Cerrar sesión revoca el token. Los datos privados de las identidades de versiones anteriores permanecen separados del nuevo negocio de muestra y no se publican.
 
 ## Desarrollo
 
-Requiere Node 22.13 o posterior. `npm ci` instala dependencias y `npm run dev` inicia la vista de desarrollo. El inicio de sesión de desarrollo lo simula exclusivamente el plugin local del starter. La versión publicada usa la identidad de la plataforma y mantiene acceso privado.
+Requiere Node 22.13 o posterior. `npm ci` instala dependencias y `npm run dev` inicia la vista de desarrollo. La cuenta de prueba de la aplicación funciona tanto en desarrollo como en la versión publicada, sin exigir una cuenta de ChatGPT. El acceso externo del Site depende además de la política de audiencia configurada en Sites, que se conserva al publicar.
 
 Comandos: `npm test`, `npx tsc --noEmit`, `npm run build`.
 
@@ -17,6 +23,7 @@ Generar migraciones con `npm run db:generate` solo cuando cambie el esquema. Com
 ```sh
 npm run build
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_thin_brood.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_oval_luminals.sql
 npm run dev
 ```
 
@@ -32,15 +39,15 @@ No volver a aplicar una migración que ya fue ejecutada. La publicación aplica 
 - La anulación de una venta repone el stock y revierte el cobro; no se ejecuta dos veces.
 - Las escrituras usan comparación de revisión e identificador de petición para controlar concurrencia y reintentos.
 - Las respuestas de administración no se almacenan en caché. El catálogo recibe productos publicados sin costos, ventas, deudas ni pagos.
-- Cada usuario de la plataforma tiene datos separados. La identidad se valida en el servidor y la plataforma limita el acceso al Site privado.
+- El catálogo público y la cuenta de prueba usan el mismo negocio de demostración. Los costos e historiales requieren una sesión de administración.
 
 ## Límites de esta versión
 
-Es una demostración para validar el alcance, no una entrega lista para manejar dinero real. El catálogo también es privado. La puesta en marcha comercial necesita catálogo público con administración separada, accesos de la clienta, sus datos reales, copias automáticas y recuperación comprobada.
+Es una demostración para validar el alcance, no una entrega lista para manejar dinero real. La puesta en marcha comercial necesita reemplazar la cuenta pública de prueba por accesos privados de la clienta, sus datos reales, copias automáticas y recuperación comprobada.
 
 El piloto guarda el conjunto de datos en un documento D1 con revisión, hasta 1 MB y 500 variedades. Para uso sostenido debe migrarse a tablas por entidad. Los respaldos JSON se descargan, pero su recuperación todavía requiere asistencia técnica. No hay facturación fiscal, pagos online, fiado, recetas, lotes, vencimientos ni integración con balanzas. El saldo mostrado suma todos los medios de pago, sin conciliación bancaria ni cierre de efectivo por caja.
 
-La foto ilustrativa del catálogo se generó para la muestra. Los rellenos del listado son sugerencias al cargar un artículo; no se atribuyen automáticamente a las pastas.
+Las cuatro fotos de categoría se generaron para la muestra y están rotuladas como ilustrativas. Cada producto admite un enlace HTTPS a su foto propia desde el formulario de edición; si falta o falla, usa la foto de categoría. Todavía no se suben archivos desde el dispositivo. Los rellenos del listado son sugerencias al cargar un artículo; no se atribuyen automáticamente a las pastas.
 
 ## Estructura
 
@@ -48,9 +55,12 @@ La foto ilustrativa del catálogo se generó para la muestra. Los rellenos del l
 - `lib/actions.ts`: validación y operaciones del negocio.
 - `db/business-store.ts`: persistencia con control de revisión.
 - `app/api/business/route.ts`: administración y datos sanitizados para el catálogo.
+- `app/api/session/route.ts`, `app/demo-auth.ts`: acceso de prueba y sesiones persistentes.
+- `app/page.tsx`: catálogo público con datos renderizados desde el servidor.
+- `app/admin/`: acceso y página de administración.
 - `app/business-app.tsx`, `app/views.tsx`, `app/components.tsx`: interfaz de administración y formularios.
 - `app/catalogo/`: catálogo, carrito y enlace a WhatsApp. Abrir el enlace no confirma venta ni reserva stock.
 - `tests/business.test.ts`: pruebas de cantidades, importes, stock, deuda y anulaciones.
-- `tests/api-check.py`: pruebas contra el Worker construido en localhost:8788. Usa identidades sintéticas aisladas y nunca envía datos a producción.
+- `tests/api-check.py`: pruebas contra el Worker construido en localhost:8788 con una base local de prueba separada. Comprueba acceso, sesiones, edición pública, privacidad, concurrencia y cierre de sesión; nunca envía datos a producción.
 
 La propuesta comercial y la guía de uso están en la carpeta superior a este proyecto.

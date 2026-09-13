@@ -23,6 +23,7 @@ import {
   Leaf,
   Download,
   Check,
+  LogOut,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -81,6 +82,7 @@ export default function BusinessApp() {
     try {
       const r = await fetch("/api/business", { cache: "no-store" });
       const j = (await r.json()) as Business & { error?: string };
+      if (r.status === 401) { window.location.assign("/admin/login"); return; }
       if (!r.ok) throw new Error(j.error);
       setData(j);
       setError("");
@@ -114,6 +116,7 @@ export default function BusinessApp() {
     });
     const result = (await r.json()) as Business & { error?: string };
     if (!r.ok) {
+      if (r.status === 401) setError("Tu sesión terminó. Abrí Administración en otra pestaña e iniciá sesión para guardar este formulario.");
       if (r.status === 409) setError(result.error || "No pudimos guardar.");
       throw new Error(result.error || "No pudimos guardar los cambios.");
     }
@@ -254,12 +257,19 @@ export default function BusinessApp() {
             Configuración
           </button>
           <div className="profile">
-            <span>MC</span>
+            <span>DP</span>
             <div>
-              <strong>{data.settings.name}</strong>
-              <small>Administración</small>
+              <strong>Usuario de prueba</strong>
+              <small>Muestra compartida</small>
             </div>
           </div>
+          <button className="nav-button" onClick={async () => {
+            try {
+              const r = await fetch("/api/session", { method: "DELETE" });
+              if (!r.ok) throw new Error("No pudimos cerrar la sesión. Volvé a intentar.");
+              window.location.assign("/");
+            } catch (e) { setError(e instanceof Error ? e.message : "No pudimos cerrar la sesión."); }
+          }}><LogOut /> Cerrar sesión</button>
         </SidebarFooter>
       </Sidebar>
       <div className="workspace">
@@ -275,7 +285,7 @@ export default function BusinessApp() {
               {navigation.find((n) => n.id === view)?.label || "Configuración"}
             </strong>
           </div>
-          <a className="text-link" href="/catalogo">
+          <a className="text-link" href="/">
             Ver catálogo <ArrowUpRight />
           </a>
         </header>
@@ -492,7 +502,7 @@ export function Dashboard({
       <div className="metrics">
         <div className="metric">
           <span>
-            <i className="dot green" />
+            <i className="dot brand-dot" />
             Cobrado en ventas
           </span>
           <strong>{money(s.received)}</strong>
@@ -500,7 +510,7 @@ export function Dashboard({
         </div>
         <div className="metric">
           <span>
-            <i className="dot blue" />
+            <i className="dot secondary-dot" />
             Pagado en compras y gastos
           </span>
           <strong>{money(s.paid)}</strong>
@@ -528,7 +538,7 @@ export function Dashboard({
               <p>Cobros de los últimos 7 días</p>
             </div>
             <span className="legend">
-              <i className="dot green" />
+              <i className="dot brand-dot" />
               Ventas
             </span>
           </div>

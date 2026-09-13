@@ -6,3 +6,7 @@ export const businesses = sqliteTable("businesses", {
   payload: text("payload").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+export const demoSessions = sqliteTable("demo_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  expiresAt: integer("expires_at").notNull(),
+});

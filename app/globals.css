@@ -2,39 +2,44 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
+/* Accent palette: violet #934fb8, with darker text/hover shades and light
+   surfaces. Existing layout, typography and semantic status colors stay intact. */
 :root {
+  --brand: #934fb8;
+  --brand-hover: #8143a3;
+  --brand-strong: #763994;
+  --brand-soft: #f3eaf8;
+  --brand-chart: #a76cc4;
+  --chart-secondary: #6c6196;
+  --success: #426953;
+  --success-light: #edf3ec;
   --background: #f7f8f5;
   --foreground: #202722;
   --card: #fff;
   --card-foreground: #202722;
   --popover: #fff;
   --popover-foreground: #202722;
-  --primary: #202722;
+  --primary: var(--brand);
   --primary-foreground: #fff;
   --secondary: #eef0eb;
   --secondary-foreground: #202722;
   --muted: #eef0eb;
   --muted-foreground: #626b64;
-  --accent: #edf1eb;
-  --accent-foreground: #202722;
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand-strong);
   --destructive: #ad413b;
   --border: #e2e6df;
   --input: #d6dcd3;
-  --ring: #426953;
+  --ring: var(--brand);
   --radius: 1rem;
   --sidebar: #f5f6f2;
   --sidebar-foreground: #3d4940;
-  --sidebar-primary: #202722;
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #fff;
-  --sidebar-accent: #e6eae2;
-  --sidebar-accent-foreground: #25372a;
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand-strong);
   --sidebar-border: #e2e6df;
-  --sidebar-ring: #426953;
-  --green: #426953;
-  --green-light: #edf3ec;
-  --green-chart: #a9bea4;
-  --blue: #356b93;
-  --blue-light: #eaf1f6;
+  --sidebar-ring: var(--brand);
   --amber: #895919;
   --amber-light: #faf0de;
   --red: #ad413b;
@@ -52,10 +57,10 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
-  --chart-1: #426953;
-  --chart-2: #356b93;
+  --chart-1: var(--brand);
+  --chart-2: var(--chart-secondary);
   --chart-3: #895919;
-  --chart-4: #a9bea4;
+  --chart-4: var(--brand-chart);
   --chart-5: #ad413b;
 }
 @theme inline {
@@ -176,12 +181,12 @@ strong {
   place-items: center;
   width: 36px;
   height: 36px;
-  background: var(--green);
+  background: var(--brand);
   color: var(--paper);
   border-radius: 12px;
 }
 .brand-period {
-  color: var(--green);
+  color: var(--brand-strong);
 }
 .app-sidebar {
   border-right: 1px solid var(--border);
@@ -196,7 +201,7 @@ strong {
   border-bottom: 1px solid var(--border);
 }
 .store-switch > svg {
-  color: var(--green);
+  color: var(--brand-strong);
 }
 .store-switch strong {
   display: block;
@@ -226,6 +231,7 @@ strong {
 }
 .nav-button[data-active="true"] {
   background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
 }
 .nav-button svg {
   width: 20px;
@@ -240,8 +246,8 @@ strong {
 }
 .demo-label {
   font-size: 12px;
-  background: var(--green-light);
-  color: var(--green);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
   border: 1px solid var(--border);
   padding: 4px 8px;
   border-radius: 8px;
@@ -308,7 +314,7 @@ strong {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: var(--green);
+  color: var(--brand-strong);
   font-weight: 500;
   border-radius: 8px;
   min-height: 36px;
@@ -369,7 +375,7 @@ strong {
   border-color: var(--primary);
 }
 .btn.primary:hover {
-  background: var(--green);
+  background: var(--brand-hover);
 }
 .btn.danger {
   color: var(--red);
@@ -441,8 +447,8 @@ strong {
   color: var(--muted-foreground);
 }
 .metric.balance {
-  background: var(--green-light);
-  color: var(--green);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
 }
 .dot {
   width: 8px;
@@ -450,11 +456,11 @@ strong {
   border-radius: 50%;
   display: inline-block;
 }
-.green {
-  background: var(--green);
+.brand-dot {
+  background: var(--brand);
 }
-.blue {
-  background: var(--blue);
+.secondary-dot {
+  background: var(--chart-secondary);
 }
 .amber {
   background: var(--amber);
@@ -526,8 +532,8 @@ strong {
   border-radius: 8px;
   background: repeating-linear-gradient(
     to top,
-    var(--green-chart) 0px,
-    var(--green-chart) 4px,
+    var(--brand-chart) 0px,
+    var(--brand-chart) 4px,
     transparent 4px,
     transparent 8px
   );
@@ -535,15 +541,15 @@ strong {
 .tick-bar.today {
   background: repeating-linear-gradient(
     to top,
-    var(--green) 0px,
-    var(--green) 4px,
+    var(--brand) 0px,
+    var(--brand) 4px,
     transparent 4px,
     transparent 8px
   );
 }
 .today-label {
   font-weight: 600;
-  color: var(--green);
+  color: var(--brand-strong);
 }
 .bar-value {
   font-size: 11px;
@@ -610,8 +616,8 @@ strong {
   color: var(--amber);
 }
 .status.success {
-  background: var(--green-light);
-  color: var(--green);
+  background: var(--success-light);
+  color: var(--success);
 }
 .status.neutral {
   background: var(--muted);
@@ -948,7 +954,7 @@ td small {
   border-color: var(--border);
 }
 .filter-tabs button:hover {
-  color: var(--green);
+  color: var(--brand-strong);
 }
 .quiet-summary {
   font-size: 14px;
@@ -968,7 +974,7 @@ td small {
   min-height: 44px;
 }
 .table-product:hover > strong {
-  color: var(--green);
+  color: var(--brand-strong);
   text-decoration: underline;
 }
 .footnote {
@@ -1134,7 +1140,7 @@ td small {
   min-height: 44px;
 }
 .check-field input {
-  accent-color: var(--green);
+  accent-color: var(--brand-strong);
   width: 16px;
   height: 16px;
 }
@@ -1201,7 +1207,7 @@ td small {
   display: block;
   margin-top: 8px;
   font-size: 14px;
-  color: var(--green);
+  color: var(--brand-strong);
 }
 .pos-product > div:last-child {
   text-align: right;
@@ -1369,7 +1375,7 @@ td small {
   white-space: nowrap;
 }
 .positive {
-  color: var(--green);
+  color: var(--success);
 }
 .negative {
   color: var(--red);
@@ -1429,7 +1435,7 @@ td small {
   gap: 16px;
 }
 .catalog-hero {
-  background: var(--green-light);
+  background: var(--brand-soft);
   border-radius: 24px;
   overflow: hidden;
   display: grid;
@@ -1450,13 +1456,36 @@ td small {
 .catalog-hero p {
   margin-top: 20px;
   font-size: 16px;
-  color: var(--green);
+  color: var(--brand-strong);
   max-width: 360px;
 }
 .catalog-hero img {
   width: 100%;
-  height: 256px;
+  height: 100%;
+  min-height: 320px;
   object-fit: cover;
+}
+.hero-cta { margin-top: 24px; }
+#productos { scroll-margin-top: 24px; }
+.catalog-section-heading { margin-bottom: 24px; }
+.catalog-section-heading h2 { font-size: 28px; letter-spacing: -0.6px; }
+.catalog-section-heading p { font-size: 14px; color: var(--muted-foreground); margin-top: 4px; }
+.catalog-admin-link { flex-shrink: 0; }
+.login-page { max-width: 520px; margin: auto; padding: 40px 24px; }
+.login-panel { padding: 40px; margin-top: 32px; }
+.login-panel > .brand-mark { display: flex; width: 48px; height: 48px; margin-bottom: 24px; }
+.login-eyebrow { font-size: 12px; color: var(--brand-strong); letter-spacing: 1px; margin-bottom: 12px; }
+.login-panel h1 { font-size: 32px; letter-spacing: -1px; line-height: 1.15; }
+.login-panel > p:not(.login-eyebrow) { color: var(--muted-foreground); margin-top: 16px; font-size: 16px; line-height: 1.5; }
+.demo-access { display: flex; gap: 12px; padding: 16px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-strong); margin: 24px 0; font-size: 14px; }
+.demo-access p { margin-top: 8px; line-height: 1.7; overflow-wrap: anywhere; }
+.demo-access svg { flex-shrink: 0; margin-top: 4px; }
+.login-submit { margin-top: 24px; }
+.login-panel > .login-note { font-size: 13px !important; }
+@media (max-width: 480px) {
+  .login-panel { padding: 24px; }
+  .login-page { padding: 24px 16px; }
+  .catalog-admin-link { padding-inline: 12px; font-size: 14px; }
 }
 .catalog-content {
   display: grid;
@@ -1476,6 +1505,11 @@ td small {
   gap: 12px;
   min-width: 0;
 }
+.product-photo { position: relative; overflow: hidden; border-radius: 12px; background: var(--background); }
+.product-photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.product-photo figcaption { padding: 8px; font-size: 12px; line-height: 1.3; color: var(--muted-foreground); }
+.photo-placeholder { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: var(--muted-foreground); }
+.product-photo-preview { max-width: 240px; }
 .category-label {
   display: flex;
   align-items: center;
@@ -1531,7 +1565,7 @@ td small {
 }
 .catalog-status {
   font-size: 12px;
-  color: var(--green);
+  color: var(--success);
 }
 .catalog-disclaimer {
   font-size: 13px;
@@ -1692,6 +1726,7 @@ td small {
   }
   .catalog-hero img {
     height: 176px;
+    min-height: 0;
   }
   .catalog-content {
     grid-template-columns: 1fr;
@@ -1717,13 +1752,13 @@ td small {
   }
   .catalog-product .btn {
     padding: 8px;
-    font-size: 13px;
+    font-size: 14px;
   }
   .catalog-cart {
     position: static;
   }
   .catalog-hero p {
-    font-size: 14px;
+    font-size: 16px;
   }
   .catalog-top .text-link {
     font-size: 12px;
@@ -1744,6 +1779,14 @@ td small {
   .bar-value {
     font-size: 12px;
   }
+}
+@media (max-width: 480px) {
+  .catalog-top { flex-wrap: wrap; gap: 0; padding-bottom: 16px; }
+  .catalog-top .brand { flex: 1; min-width: 0; font-size: 20px; overflow-wrap: anywhere; }
+  .catalog-admin-link svg { display: none; }
+  .catalog-products { grid-template-columns: 1fr; }
+  .catalog-product { padding: 20px; }
+  .catalog-product h2 { font-size: 22px; }
 }
 
 .data-table [data-slot="table-row"] {
