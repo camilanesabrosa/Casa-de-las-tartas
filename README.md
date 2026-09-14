@@ -1,5 +1,10 @@
 # Mostrador
 
+Publicado en el VPS de Fernando: https://sinnick.dev/casadelastartas/.
+Usa Node 24, SQLite persistente y Nginx. Las instrucciones de actualización,
+respaldo y recuperación están en [deployment/README.md](deployment/README.md).
+La copia de Sites sigue disponible y tiene una base independiente.
+
 Muestra de ventas, productos, stock, proveedores, gastos y catálogo de un negocio gastronómico. El catálogo público es la página principal; la administración está en `/admin`. Soporta unidades enteras y peso en gramos, con precio por kilo. Los 25 nombres de artículos y 13 variedades se transcribieron del listado aportado por Fernando; precios y movimientos son ejemplos.
 
 ## Acceso de prueba
@@ -47,11 +52,11 @@ Es una demostración para validar el alcance, no una entrega lista para manejar 
 
 El piloto guarda el conjunto de datos en un documento D1 con revisión, hasta 1 MB y 500 variedades. Para uso sostenido debe migrarse a tablas por entidad. Los respaldos JSON se descargan, pero su recuperación todavía requiere asistencia técnica. No hay facturación fiscal, pagos online, fiado, recetas, lotes, vencimientos ni integración con balanzas. El saldo mostrado suma todos los medios de pago, sin conciliación bancaria ni cierre de efectivo por caja.
 
-Los 25 artículos tienen fotos ilustrativas individuales en `public/photos/products/`, generadas con la herramienta integrada imagegen. Las instrucciones usadas se conservan en `docs/product-photo-prompts.json`. La selección se hace por nombre y, cuando el relleno es visible, por variedad, en `lib/product-photos.ts`. Se distinguen pollo, pescado, soja, tipos de papa y formas de pasta. Fernando confirmó Yogurlac como pote de yogur con cereales y banana, y Mendosoja como milanesa de soja.
+Los 25 artículos tienen fotos ilustrativas individuales en `public/photos/products/`, generadas con la herramienta integrada imagegen. Las instrucciones usadas se conservan en `docs/product-photo-prompts.json`. La selección se hace por nombre y, cuando el relleno es visible, por variedad, en `lib/product-photos.ts`. Se distinguen pollo, pescado, soja, tipos de papa y formas de pasta. Fernando corrigió la presentación de Yogurlac a leche con cereales y banana, y Mendosoja como milanesa de soja.
 
 Cada producto admite un enlace HTTPS a su foto propia desde el formulario de edición. Esa foto tiene prioridad; si falta o falla, usa la ilustrativa del artículo. Los artículos o rellenos sin coincidencia muestran “Foto pendiente”, sin asignarles una imagen de otra comida. La vista previa del editor sigue los cambios de nombre y variedad. Todavía no se suben archivos desde el dispositivo. Los rellenos del listado son sugerencias al cargar un artículo; no se atribuyen automáticamente a las pastas.
 
-En el catálogo, Yogurlac se presenta como “Yogur con cereales y banana”, aparece primero y lleva la etiqueta “Nuevo producto”. Conserva el mismo artículo, precio y stock; el nombre descriptivo también se usa en el pedido. Al ocultarlo desde administración deja de aparecer, incluido el destacado.
+En el catálogo, Yogurlac se presenta como “Leche con cereales y banana”, aparece primero y lleva la etiqueta “Nuevo producto”. Conserva el mismo artículo, precio y stock; el nombre descriptivo también se usa en el pedido. Al ocultarlo desde administración deja de aparecer, incluido el destacado.
 
 ## Estructura
 
