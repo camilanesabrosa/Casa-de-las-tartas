@@ -1,8 +1,9 @@
+import { appPath } from "./paths";
 // Illustrative photos match the food and, where visible, its filling.
 // Custom photos always take precedence in ProductPhoto. No category fallback.
 type ProductPhoto = { src: string; alt: string };
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
-const photo = (slug: string, alt: string, format = "jpg"): ProductPhoto => ({ src: `/photos/products/${slug}.${format}`, alt });
+const photo = (slug: string, alt: string, format = "jpg"): ProductPhoto => ({ src: appPath(`/photos/products/${slug}.${format}`), alt });
 const plainPhotos: Record<string, ProductPhoto> = {
   "patitas de pollo": photo("patitas-pollo", "Patitas de pollo rebozadas, con forma de pequeños muslitos"),
   "papas noisette": photo("papas-noisette", "Papas noisette redondas y doradas"),

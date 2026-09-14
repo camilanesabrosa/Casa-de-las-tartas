@@ -1,4 +1,5 @@
 "use client";
+import { appPath } from "@/lib/paths";
 import { useEffect, useState } from "react";
 import {
   Store,
@@ -37,7 +38,7 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
   const [feedback, setFeedback] = useState("");
   async function load() {
     try {
-      const r = await fetch("/api/business?catalog=1", { cache: "no-store" });
+      const r = await fetch(appPath("/api/business?catalog=1"), { cache: "no-store" });
       const j = (await r.json()) as CatalogData & { error?: string };
       if (!r.ok) throw new Error(j.error);
       setData(j);
@@ -136,13 +137,13 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
   return (
     <main className="catalog-page">
       <header className="catalog-top">
-        <a href="/" className="brand">
+        <a href={appPath("/")} className="brand">
           <span className="brand-mark">
             <Store />
           </span>
           {data.settings.name}
         </a>
-        <a className="btn catalog-admin-link" href="/admin">
+        <a className="btn catalog-admin-link" href={appPath("/admin")}>
           <Settings2 />
           Administración
         </a>
@@ -165,7 +166,7 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
           <a className="btn primary hero-cta" href="#productos">Explorar productos <ArrowDown /></a>
         </div>
         <img
-          src="/photos/pastas.jpg"
+          src={appPath("/photos/pastas.jpg")}
           alt="Ravioles, tallarines, ñoquis y canelones. Foto ilustrativa."
           width="960"
           height="720"

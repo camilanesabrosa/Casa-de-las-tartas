@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
+import { BASE_PATH } from "@/lib/paths";
 
 export const SESSION_COOKIE = "mostrador_demo_session";
 export const SESSION_AGE = 60 * 60 * 8;
@@ -39,5 +40,5 @@ export function sameOrigin(request: Request) {
   return origin === new URL(request.url).origin;
 }
 export function sessionCookie(request: Request, token: string) {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${token ? SESSION_AGE : 0}${new URL(request.url).protocol === "https:" ? "; Secure" : ""}`;
+  return `${SESSION_COOKIE}=${token}; Path=${BASE_PATH || "/"}; HttpOnly; SameSite=Lax; Max-Age=${token ? SESSION_AGE : 0}${new URL(request.url).protocol === "https:" ? "; Secure" : ""}`;
 }

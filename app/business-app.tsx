@@ -1,4 +1,5 @@
 "use client";
+import { appPath } from "@/lib/paths";
 import {
   Table,
   TableHeader,
@@ -80,9 +81,9 @@ export default function BusinessApp() {
   async function reload() {
     setLoading(true);
     try {
-      const r = await fetch("/api/business", { cache: "no-store" });
+      const r = await fetch(appPath("/api/business"), { cache: "no-store" });
       const j = (await r.json()) as Business & { error?: string };
-      if (r.status === 401) { window.location.assign("/admin/login"); return; }
+      if (r.status === 401) { window.location.assign(appPath("/admin/login")); return; }
       if (!r.ok) throw new Error(j.error);
       setData(j);
       setError("");
@@ -105,7 +106,7 @@ export default function BusinessApp() {
     const key = JSON.stringify(action);
     if (pending.current?.key !== key)
       pending.current = { key, id: crypto.randomUUID() };
-    const r = await fetch("/api/business", {
+    const r = await fetch(appPath("/api/business"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -265,9 +266,9 @@ export default function BusinessApp() {
           </div>
           <button className="nav-button" onClick={async () => {
             try {
-              const r = await fetch("/api/session", { method: "DELETE" });
+              const r = await fetch(appPath("/api/session"), { method: "DELETE" });
               if (!r.ok) throw new Error("No pudimos cerrar la sesión. Volvé a intentar.");
-              window.location.assign("/");
+              window.location.assign(appPath("/"));
             } catch (e) { setError(e instanceof Error ? e.message : "No pudimos cerrar la sesión."); }
           }}><LogOut /> Cerrar sesión</button>
         </SidebarFooter>
@@ -285,7 +286,7 @@ export default function BusinessApp() {
               {navigation.find((n) => n.id === view)?.label || "Configuración"}
             </strong>
           </div>
-          <a className="text-link" href="/">
+          <a className="text-link" href={appPath("/")}>
             Ver catálogo <ArrowUpRight />
           </a>
         </header>
@@ -444,7 +445,7 @@ function MenuNav({
         ))}
         <SidebarMenuItem>
           <SidebarMenuButton className="nav-button" asChild>
-            <a href="/catalogo">
+            <a href={appPath("/catalogo")}>
               <Store />
               <span>Catálogo digital</span>
               <ArrowUpRight />

@@ -1,0 +1,15 @@
+[Unit]
+Description=Backup SQLite Casa de las Tartas
+After=casadelastartas.service
+ConditionPathExists=/var/lib/casadelastartas/business.sqlite
+
+[Service]
+Type=oneshot
+User=casadelastartas
+Group=casadelastartas
+ExecStart=/usr/bin/python3 /srv/casadelastartas/current/deployment/backup.py
+UMask=0077
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/casadelastartas

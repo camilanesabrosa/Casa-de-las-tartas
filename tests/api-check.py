@@ -1,11 +1,17 @@
-"""Run only against a built local Worker with an isolated test database."""
+"""Run only against a local build with an isolated test database (Worker or VPS)."""
 import concurrent.futures
 import json
 import urllib.error
 import urllib.request
 import uuid
+import os
+from urllib.parse import urlparse
 
-ORIGIN = 'http://localhost:8788'
+ORIGIN = os.environ.get('MOSTRADOR_TEST_ORIGIN', 'http://localhost:8788')
+BASE_PATH = os.environ.get('MOSTRADOR_TEST_BASE_PATH', '')
+assert urlparse(ORIGIN).hostname in ('localhost', '127.0.0.1'), 'Never run mutation tests against production.'
+assert BASE_PATH in ('', '/casadelastartas')
+APP_URL = ORIGIN + BASE_PATH
 credentials = {'email': 'demo@mostrador.test', 'password': 'Mostrador123!'}
 
 def call(path='/api/business', method='GET', payload=None, cookie=None, extra=None):
@@ -13,7 +19,7 @@ def call(path='/api/business', method='GET', payload=None, cookie=None, extra=No
     if cookie:
         headers['Cookie'] = cookie
     headers.update(extra or {})
-    request = urllib.request.Request(ORIGIN + path,
+    request = urllib.request.Request(APP_URL + path,
         data=json.dumps(payload).encode() if payload is not None else None,
         headers=headers, method=method)
     try:
@@ -36,17 +42,17 @@ assert call()[0] == 401
 assert call(extra={'oai-authenticated-user-id': 'legacy-owner', 'oai-authenticated-user-email': 'legacy@example.com'})[0] == 401
 assert call(cookie='mostrador_demo_session=' + 'f' * 64)[0] == 401
 status, root, _, root_url = call('/')
-assert status == 200 and root_url == ORIGIN + '/'
+assert status == 200 and root_url == APP_URL + '/'
 assert 'Tu próxima comida' in root and 'Administración' in root and 'Medallón de pollo' in root
 assert '/photos/products/medallon-pollo-jamon-queso.jpg' in root
-assert call('/catalogo')[3] == ORIGIN + '/'
-assert call('/admin')[3] == ORIGIN + '/admin/login'
+assert call('/catalogo')[3] == APP_URL + '/'
+assert call('/admin')[3] == APP_URL + '/admin/login'
 assert call('/api/session', 'POST', {**credentials, 'password': 'incorrecta'})[0] == 401
 assert call('/api/session', 'POST', credentials, extra={'Origin': 'https://other.example'})[0] == 403
 
 cookie = login()
 second_cookie = login()
-assert call('/admin', cookie=cookie)[3] == ORIGIN + '/admin'
+assert call('/admin', cookie=cookie)[3] == APP_URL + '/admin'
 status, business, _, _ = call(cookie=cookie)
 assert status == 200 and len(business['products']) == 25
 
@@ -82,7 +88,7 @@ assert sorted(statuses) == [200, 409], statuses
 
 assert call('/api/session', 'DELETE', cookie=cookie)[0] == 200
 assert call(cookie=cookie)[0] == 401
-assert call('/admin', cookie=cookie)[3] == ORIGIN + '/admin/login'
+assert call('/admin', cookie=cookie)[3] == APP_URL + '/admin/login'
 assert call(cookie=second_cookie)[0] == 200
 assert call('/api/session', 'DELETE', cookie=second_cookie)[0] == 200
 print('OK: catálogo público renderizado, sesión de prueba, edición compartida, fotos, privacidad, idempotencia, concurrencia, origen y revocación.')

@@ -1,4 +1,5 @@
 "use client";
+import { appPath } from "@/lib/paths";
 import { useState, type FormEvent } from "react";
 import { ArrowLeft, Store, ArrowRight, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,20 +15,20 @@ export default function Login() {
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const response = await fetch("/api/session", { method: "POST",
+      const response = await fetch(appPath("/api/session"), { method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: String(form.get("email")).trim(), password: form.get("password") }),
       });
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error);
-      window.location.assign("/admin");
+      window.location.assign(appPath("/admin"));
     } catch (error) {
       setError(error instanceof Error ? error.message : "No pudimos iniciar sesión.");
       setBusy(false);
     }
   }
   return <main className="login-page">
-    <a href="/" className="text-link"><ArrowLeft /> Volver al catálogo</a>
+    <a href={appPath("/")} className="text-link"><ArrowLeft /> Volver al catálogo</a>
     <section className="panel login-panel">
       <span className="brand-mark"><Store /></span>
       <p className="login-eyebrow">MOSTRADOR · ADMINISTRACIÓN</p>

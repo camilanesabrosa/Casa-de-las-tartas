@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { appPath } from "@/lib/paths";
 
 export const metadata: Metadata = {
   title: "Mostrador · Mi cocina",
@@ -9,8 +10,8 @@ export const metadata: Metadata = {
     "codex-preview": "development",
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: appPath("/favicon.svg"),
+    shortcut: appPath("/favicon.svg"),
   },
 };
 
