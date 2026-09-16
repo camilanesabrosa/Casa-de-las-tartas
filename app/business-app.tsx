@@ -241,7 +241,7 @@ export default function BusinessApp() {
             <span>Mi negocio</span>
           </div>
         </div>
-        <SidebarContent>
+        <SidebarContent className="admin-sidebar-content">
           <MenuNav view={view} navigate={setView} />
         </SidebarContent>
         <SidebarFooter>

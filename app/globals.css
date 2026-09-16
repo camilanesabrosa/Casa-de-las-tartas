@@ -191,6 +191,10 @@ strong {
 .app-sidebar {
   border-right: 1px solid var(--border);
 }
+.app-sidebar .admin-sidebar-content {
+  overflow: visible;
+  flex: 0 0 auto;
+}
 .store-switch {
   display: flex;
   align-items: center;
