@@ -34,6 +34,8 @@ import {
   quantityLabel,
   lineTotal,
   varieties,
+  categories,
+  categoryLetter,
 } from "@/lib/business";
 import { type Action } from "@/lib/actions";
 import ProductPhoto from "./catalogo/product-photo";
@@ -201,6 +203,7 @@ export function ProductEditor({
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   const [productName, setProductName] = useState(product?.name || "");
   const [variety, setVariety] = useState(product?.variety || "");
+  const [number, setNumber] = useState(String(product?.number || ""));
   return (
     <Modal
       title={product ? "Editar producto" : "Nuevo producto"}
@@ -214,6 +217,7 @@ export function ProductEditor({
             type: "product",
             product: {
               id: product?.id,
+              number: num(f, "number"),
               name: string(f, "name"),
               variety: string(f, "variety"),
               category,
@@ -257,10 +261,27 @@ export function ProductEditor({
             label="Categoría"
             value={category}
             onChange={setCategory}
-            options={["Precocidos", "Congelados", "Pastas", "Varios"].map(
-              (value) => ({ value, label: value }),
-            )}
+            options={categories.map((value) => ({ value, label: value }))}
           />
+          <label className="field">
+            <span>Número del cartel</span>
+            <Input
+              name="number"
+              className="field-input"
+              type="number"
+              min={1}
+              step="1"
+              value={number}
+              onChange={(event) => setNumber(event.target.value)}
+              required
+            />
+            <small>
+              Código para el buscador:{" "}
+              <strong>
+                {number ? `${number}${categoryLetter(category)}` : "—"}
+              </strong>
+            </small>
+          </label>
           {!product ? (
             <Choice
               label="Se vende por"
