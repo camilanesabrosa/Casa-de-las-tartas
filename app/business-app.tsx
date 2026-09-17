@@ -51,7 +51,6 @@ import {
   SaleEditor,
   CashEditor,
   downloadJSON,
-  displayDate,
   type Save,
 } from "./components";
 import {
@@ -339,43 +338,6 @@ export default function BusinessApp() {
                   Descargar respaldo
                 </Button>
               </div>
-              <section className="panel ledger-panel">
-                <div className="panel-heading">
-                  <div>
-                    <h2>Últimos movimientos de dinero</h2>
-                    <p>Aportes, retiros, pagos a proveedores y gastos</p>
-                  </div>
-                </div>
-                <div className="history-list">
-                  {data.payments
-                    .slice(-5)
-                    .reverse()
-                    .map((p) => (
-                      <div key={p.id}>
-                        <div>
-                          <strong>
-                            {p.kind === "purchase"
-                              ? "Pago a proveedor"
-                              : p.kind === "expense"
-                                ? "Pago de gasto"
-                                : p.reference}
-                          </strong>
-                          <small>
-                            {displayDate(p.date)} · {p.reference}
-                          </small>
-                        </div>
-                        <span
-                          className={
-                            p.kind === "deposit" ? "positive" : "negative"
-                          }
-                        >
-                          {p.kind === "deposit" ? "+" : "−"}
-                          {money(p.amount)}
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </section>
             </>
           ) : view === "products" ? (
             <ProductsView data={data} save={save} />
