@@ -22,6 +22,10 @@ import {
   money,
   quantityLabel,
   lineTotal,
+  categories,
+  categoryLetter,
+  productCode,
+  matchesCode,
 } from "@/lib/business";
 import { CartLines, type CartItem } from "../components";
 import type { CatalogProduct, CatalogData } from "@/lib/catalog";
@@ -96,7 +100,8 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
   const filtered = data.products.filter(
     (p) =>
       (category === "Todos" || p.category === category) &&
-      `${p.name} ${p.variety}`.toLowerCase().includes(q.toLowerCase()),
+      (matchesCode(p, q) ||
+        `${p.name} ${p.variety}`.toLowerCase().includes(q.toLowerCase())),
   );
   function add(p: CatalogProduct) {
     const amount = p.unit === "kg" ? Math.min(250, p.stock) : 1000;
@@ -180,7 +185,7 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
             <Search />
             <Input
               aria-label="Buscar en el catálogo"
-              placeholder="¿Qué tenés ganas de comer?"
+              placeholder="Buscá por código (4A) o por nombre…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -188,13 +193,11 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
           <div className="filter-row" style={{ marginTop: 16 }}>
             <Tabs value={category} onValueChange={setCategory}>
               <TabsList className="filter-tabs">
-                {["Todos", "Precocidos", "Congelados", "Pastas", "Varios"].map(
-                  (c) => (
-                    <TabsTrigger key={c} value={c}>
-                      {c}
-                    </TabsTrigger>
-                  ),
-                )}
+                {["Todos", ...categories].map((c) => (
+                  <TabsTrigger key={c} value={c}>
+                    {c === "Todos" ? c : `${c} · ${categoryLetter(c)}`}
+                  </TabsTrigger>
+                ))}
               </TabsList>
             </Tabs>
           </div>
@@ -211,6 +214,7 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
                   <span className="category-label">
                     <Icon />
                     {p.category}
+                    <span className="product-code">{productCode(p)}</span>
                   </span>
                   <h2>{p.name}</h2>
                   <p className="variety">
