@@ -10,6 +10,7 @@ import {
   ReceiptText,
   Settings,
   ArrowUpRight,
+  ArrowDownToLine,
   Plus,
   ArrowRight,
   CalendarDays,
@@ -43,6 +44,7 @@ import {
 import {
   SaleEditor,
   CashEditor,
+  PurchaseEditor,
   downloadJSON,
   type Save,
 } from "./components";
@@ -67,6 +69,7 @@ export default function BusinessApp() {
   const [error, setError] = useState("");
   const [saleOpen, setSaleOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const pending = useRef<{ key: string; id: string } | null>(null);
@@ -296,10 +299,25 @@ export default function BusinessApp() {
               <h1>{titles[view]}</h1>
               <p>{subtitles[view]}</p>
             </div>
-            <Button className="btn primary" onClick={() => setSaleOpen(true)}>
-              <Plus />
-              Nueva venta
-            </Button>
+            <div className="button-group">
+              <Button className="btn primary" onClick={() => setSaleOpen(true)}>
+                <Plus />
+                Nueva venta
+              </Button>
+              <Button
+                className="btn"
+                onClick={() => setPurchaseOpen(true)}
+                disabled={!data.suppliers.length || !data.products.length}
+                title={
+                  !data.suppliers.length
+                    ? "Cargá un proveedor para registrar compras."
+                    : undefined
+                }
+              >
+                <ArrowDownToLine />
+                Nueva compra
+              </Button>
+            </div>
           </div>
           {error && (
             <div className="error-banner" role="alert">
@@ -361,6 +379,13 @@ export default function BusinessApp() {
         <SaleEditor data={data} save={save} close={() => setSaleOpen(false)} />
       )}{" "}
       {cashOpen && <CashEditor save={save} close={() => setCashOpen(false)} />}
+      {purchaseOpen && (
+        <PurchaseEditor
+          data={data}
+          save={save}
+          close={() => setPurchaseOpen(false)}
+        />
+      )}
       <div className="toast-region" role="status" aria-live="polite">
         {toast && (
           <div className="app-toast">
