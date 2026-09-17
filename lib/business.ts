@@ -1,5 +1,6 @@
 export type Product = {
   id: string;
+  number: number;
   name: string;
   variety: string;
   category: string;
@@ -70,6 +71,45 @@ export type Business = {
   movements: Movement[];
   payments: Payment[];
 };
+export const categories = [
+  "Precocidos",
+  "Congelados",
+  "Pastas",
+  "Varios",
+  "Tartas",
+] as const;
+export const categoryLetter = (category: string) => {
+  const i = categories.indexOf(category as (typeof categories)[number]);
+  return i < 0 ? "" : String.fromCharCode(65 + i);
+};
+export const productCode = (p: Pick<Product, "number" | "category">) =>
+  `${p.number}${categoryLetter(p.category)}`;
+export const matchesCode = (p: Pick<Product, "number" | "category">, q: string) =>
+  productCode(p).toLowerCase() === q.trim().toLowerCase().replace(/\s+/g, "");
+const hasNumber = (p: Product) => Number.isInteger(p.number) && p.number > 0;
+// Los documentos guardados antes del cartel numerado no traen `number`.
+// Se completa por orden de aparición sin pisar los números ya asignados.
+export function withProductNumbers<T extends Business>(b: T): T {
+  if (b.products.every(hasNumber)) return b;
+  const taken = new Map<string, Set<number>>();
+  const slots = (category: string) => {
+    let set = taken.get(category);
+    if (!set) taken.set(category, (set = new Set()));
+    return set;
+  };
+  for (const p of b.products) if (hasNumber(p)) slots(p.category).add(p.number);
+  return {
+    ...b,
+    products: b.products.map((p) => {
+      if (hasNumber(p)) return p;
+      const set = slots(p.category);
+      let n = 1;
+      while (set.has(n)) n++;
+      set.add(n);
+      return { ...p, number: n };
+    }),
+  };
+}
 export const money = (cents: number) =>
   new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -99,6 +139,7 @@ export function createDemo(now = new Date()): Business {
   const products: Product[] = [
     {
       id: "p1",
+      number: 1,
       name: "Medallón de pollo",
       variety: "Jamón y queso",
       category: "Precocidos",
@@ -111,6 +152,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p2",
+      number: 2,
       name: "Medallón de pollo",
       variety: "Queso cheddar",
       category: "Precocidos",
@@ -123,6 +165,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p3",
+      number: 3,
       name: "Milanesa de merluza",
       variety: "Finas hierbas",
       category: "Precocidos",
@@ -135,6 +178,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p4",
+      number: 4,
       name: "Medallón de merluza",
       variety: "Espinaca y queso",
       category: "Precocidos",
@@ -147,6 +191,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p5",
+      number: 5,
       name: "Patitas de pollo",
       variety: "",
       category: "Precocidos",
@@ -159,6 +204,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p6",
+      number: 6,
       name: "Papas noisette",
       variety: "",
       category: "Precocidos",
@@ -171,6 +217,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p7",
+      number: 7,
       name: "Bastoncitos de muzzarella",
       variety: "",
       category: "Precocidos",
@@ -183,6 +230,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p8",
+      number: 8,
       name: "Caritas",
       variety: "",
       category: "Precocidos",
@@ -195,6 +243,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p9",
+      number: 9,
       name: "Papas bastón",
       variety: "",
       category: "Precocidos",
@@ -207,6 +256,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p10",
+      number: 10,
       name: "Filet a la romana",
       variety: "",
       category: "Precocidos",
@@ -219,6 +269,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p11",
+      number: 1,
       name: "Empanadas",
       variety: "Carne",
       category: "Congelados",
@@ -231,6 +282,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p12",
+      number: 2,
       name: "Empanadas",
       variety: "Jamón y queso",
       category: "Congelados",
@@ -243,6 +295,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p13",
+      number: 3,
       name: "Tortitas",
       variety: "",
       category: "Congelados",
@@ -255,6 +308,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p14",
+      number: 4,
       name: "Medialunas",
       variety: "Manteca",
       category: "Congelados",
@@ -267,6 +321,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p15",
+      number: 5,
       name: "Pan",
       variety: "",
       category: "Congelados",
@@ -279,6 +334,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p16",
+      number: 1,
       name: "Ravioles",
       variety: "",
       category: "Pastas",
@@ -291,6 +347,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p17",
+      number: 2,
       name: "Fideos",
       variety: "",
       category: "Pastas",
@@ -303,6 +360,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p18",
+      number: 3,
       name: "Sorrentinos",
       variety: "",
       category: "Pastas",
@@ -315,6 +373,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p19",
+      number: 4,
       name: "Ñoquis",
       variety: "",
       category: "Pastas",
@@ -327,6 +386,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p20",
+      number: 5,
       name: "Canelones",
       variety: "",
       category: "Pastas",
@@ -339,6 +399,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p21",
+      number: 1,
       name: "Ensaladas",
       variety: "",
       category: "Varios",
@@ -351,6 +412,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p22",
+      number: 2,
       name: "Yogurlac",
       variety: "",
       category: "Varios",
@@ -363,6 +425,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p23",
+      number: 3,
       name: "Mendosoja",
       variety: "",
       category: "Varios",
@@ -375,6 +438,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p24",
+      number: 4,
       name: "Milanesa de pollo",
       variety: "",
       category: "Varios",
@@ -387,6 +451,7 @@ export function createDemo(now = new Date()): Business {
     },
     {
       id: "p25",
+      number: 5,
       name: "Rollito de pollo",
       variety: "Jamón y queso",
       category: "Varios",
@@ -397,6 +462,19 @@ export function createDemo(now = new Date()): Business {
       minimum: 2000,
       published: true,
     },
+    ...varieties.map((variety, i) => ({
+      id: `p${26 + i}`,
+      number: i + 1,
+      name: "Tarta",
+      variety,
+      category: "Tartas",
+      unit: "unit" as const,
+      price: 950000,
+      cost: 540000,
+      stock: 6000,
+      minimum: 3000,
+      published: true,
+    })),
   ];
   const sales: Sale[] = [];
   for (let day = 6; day >= 0; day--) {

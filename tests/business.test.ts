@@ -1,6 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { categoryRanking, createDemo, lineTotal, summary } from "../lib/business";
+import {
+  categories,
+  categoryRanking,
+  createDemo,
+  lineTotal,
+  matchesCode,
+  productCode,
+  summary,
+  withProductNumbers,
+} from "../lib/business";
 import { applyAction } from "../lib/actions";
 import { publicCatalog } from "../lib/catalog";
 test("el catálogo solo expone productos publicados y campos públicos", () => {
@@ -8,7 +17,7 @@ test("el catálogo solo expone productos publicados y campos públicos", () => {
   b.products[0].published = false;
   b.products[1].imageUrl = "https://example.com/medallon.jpg";
   const catalog = publicCatalog(b);
-  assert.equal(catalog.products.length, 24);
+  assert.equal(catalog.products.length, b.products.length - 1);
   assert.ok(!catalog.products.some((p) => p.id === b.products[0].id));
   assert.equal(catalog.products.find((p) => p.id === b.products[1].id)?.imageUrl, b.products[1].imageUrl);
   assert.deepEqual(Object.keys(catalog).sort(), ["products", "settings"]);
@@ -21,6 +30,65 @@ test("editar fotos acepta HTTPS y rechaza contenido ejecutable o incrustado", ()
   }
   const next = applyAction(b, { type: "product", product: { ...b.products[0], imageUrl: "https://example.com/a.jpg" } });
   assert.equal(next.products[0].imageUrl, "https://example.com/a.jpg");
+});
+test("el código combina el número del cartel con la letra de su categoría", () => {
+  const b = createDemo();
+  const code = (id: string) => productCode(b.products.find((p) => p.id === id)!);
+  assert.equal(code("p1"), "1A");
+  assert.equal(code("p4"), "4A");
+  assert.equal(code("p11"), "1B");
+  assert.equal(code("p16"), "1C");
+  assert.equal(code("p21"), "1D");
+  assert.equal(code("p26"), "1E");
+  assert.equal(code("p38"), "13E");
+});
+test("cada categoría numera desde 1 y no repite códigos", () => {
+  const b = createDemo();
+  const codes = b.products.map(productCode);
+  assert.equal(new Set(codes).size, codes.length);
+  for (const category of categories) {
+    const numbers = b.products
+      .filter((p) => p.category === category)
+      .map((p) => p.number)
+      .sort((x, y) => x - y);
+    assert.ok(numbers.length > 0, category);
+    assert.deepEqual(
+      numbers,
+      numbers.map((_, i) => i + 1),
+      category,
+    );
+  }
+});
+test("la búsqueda por código ignora mayúsculas y espacios, y no hace coincidencias parciales", () => {
+  const b = createDemo();
+  const tarta = b.products.find((p) => p.id === "p26")!;
+  for (const q of ["1E", "1e", " 1 e ", "1  E"])
+    assert.ok(matchesCode(tarta, q), q);
+  for (const q of ["1", "E", "11E", "1D", ""])
+    assert.ok(!matchesCode(tarta, q), q);
+});
+test("el catálogo publica el número para que la clienta busque por código", () => {
+  const b = createDemo();
+  const catalog = publicCatalog(b);
+  assert.ok(catalog.products.every((p) => typeof p.number === "number"));
+  assert.equal(catalog.products.filter((p) => matchesCode(p, "13E")).length, 1);
+});
+test("los productos guardados sin número reciben uno sin pisar los existentes", () => {
+  const b = createDemo();
+  const legacy = {
+    ...b,
+    products: b.products
+      .filter((p) => p.category === "Pastas")
+      .map((p, i) =>
+        i === 1 ? { ...p, number: 4 } : { ...p, number: undefined as never },
+      ),
+  };
+  const fixed = withProductNumbers(legacy);
+  assert.deepEqual(
+    fixed.products.map(productCode),
+    ["1C", "4C", "2C", "3C", "5C"],
+  );
+  assert.equal(withProductNumbers(b), b, "sin cambios no copia el negocio");
 });
 test("250 gramos se cobran a un cuarto del precio por kilo, con redondeo al centavo", () => {
   assert.equal(lineTotal(850000, 250), 212500);
