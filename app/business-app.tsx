@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   ShoppingBasket,
   Package,
-  Truck,
   ReceiptText,
   Settings,
   ArrowUpRight,
@@ -51,7 +50,6 @@ import {
 import {
   ProductsView,
   SalesView,
-  SuppliersView,
   ExpensesView,
   SettingsView,
 } from "./views";
@@ -59,8 +57,7 @@ export const navigation = [
   { id: "overview", label: "Resumen", icon: LayoutDashboard },
   { id: "sales", label: "Ventas", icon: ShoppingBasket },
   { id: "products", label: "Productos y stock", icon: Package },
-  { id: "suppliers", label: "Proveedores", icon: Truck },
-  { id: "expenses", label: "Gastos", icon: ReceiptText },
+  { id: "expenses", label: "Gastos y compras", icon: ReceiptText },
 ];
 export default function BusinessApp() {
   const [data, setData] = useState<Business | null>(null);
@@ -147,7 +144,6 @@ export default function BusinessApp() {
                   "overview",
                   "sales",
                   "products",
-                  "suppliers",
                   "expenses",
                   "settings",
                 ],
@@ -164,7 +160,6 @@ export default function BusinessApp() {
                 "overview",
                 "sales",
                 "products",
-                "suppliers",
                 "expenses",
                 "settings",
               ].includes(value?.section)
@@ -201,15 +196,13 @@ export default function BusinessApp() {
     overview: "Tu negocio, de un vistazo",
     sales: "Tus ventas",
     products: "Productos y stock",
-    suppliers: "Compras y proveedores",
-    expenses: "Los gastos del negocio",
+    expenses: "Los gastos y las compras del negocio",
     settings: "Configuración",
   };
   const subtitles: Record<string, string> = {
     overview: "Todo lo que necesitás para llevar el día en orden.",
     sales: "Cada venta, su cobro y los productos que salieron.",
     products: "Lo que entra, lo que sale y lo que queda.",
-    suppliers: "Tu mercadería y las cuentas con quienes te abastecen.",
     expenses: "Tené a mano lo que pagaste y lo que queda pendiente.",
     settings: "Los datos que hacen que Mostrador sea tuyo.",
   };
@@ -358,8 +351,6 @@ export default function BusinessApp() {
               save={save}
               newSale={() => setSaleOpen(true)}
             />
-          ) : view === "suppliers" ? (
-            <SuppliersView data={data} save={save} />
           ) : view === "expenses" ? (
             <ExpensesView data={data} save={save} />
           ) : (
