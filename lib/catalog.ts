@@ -1,7 +1,7 @@
 import type { Business, Product } from "./business";
 
 export type CatalogProduct = Pick<Product,
-  "id" | "name" | "variety" | "category" | "unit" | "price" | "stock" | "imageUrl"
+  "id" | "number" | "name" | "variety" | "category" | "unit" | "price" | "stock" | "imageUrl"
 >;
 export type CatalogData = {
   settings: Business["settings"];
@@ -16,8 +16,8 @@ export function publicCatalog(data: Business): CatalogData {
   return {
     settings: data.settings,
     products: data.products.filter((p) => p.published).map(
-      ({ id, name, variety, category, unit, price, stock, imageUrl }) =>
-        ({ id, name: isNewCatalogProduct({ name }) ? NEW_PRODUCT_NAME : name, variety, category, unit, price, stock, imageUrl }),
+      ({ id, number, name, variety, category, unit, price, stock, imageUrl }) =>
+        ({ id, number, name: isNewCatalogProduct({ name }) ? NEW_PRODUCT_NAME : name, variety, category, unit, price, stock, imageUrl }),
     ).sort((a, b) => Number(isNewCatalogProduct(b)) - Number(isNewCatalogProduct(a))),
   };
 }
