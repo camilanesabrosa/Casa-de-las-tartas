@@ -30,6 +30,10 @@ import {
   quantityLabel,
   summary,
   lineTotal,
+  categories,
+  categoryLetter,
+  productCode,
+  matchesCode,
 } from "@/lib/business";
 import {
   type Save,
@@ -57,7 +61,8 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
     (p) =>
       (category === "Todos" || p.category === category) &&
       (!low || p.stock <= p.minimum) &&
-      `${p.name} ${p.variety}`.toLowerCase().includes(q.toLowerCase()),
+      (matchesCode(p, q) ||
+        `${p.name} ${p.variety}`.toLowerCase().includes(q.toLowerCase())),
   );
   return (
     <>
@@ -66,7 +71,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           <Search />
           <Input
             aria-label="Buscar en productos"
-            placeholder="Buscar producto o variedad…"
+            placeholder="Buscar por código, producto o variedad…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -85,13 +90,11 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
       <div className="filter-row">
         <Tabs value={category} onValueChange={setCategory}>
           <TabsList className="filter-tabs">
-            {["Todos", "Precocidos", "Congelados", "Pastas", "Varios"].map(
-              (c) => (
-                <TabsTrigger key={c} value={c}>
-                  {c}
-                </TabsTrigger>
-              ),
-            )}
+            {["Todos", ...categories].map((c) => (
+              <TabsTrigger key={c} value={c}>
+                {c === "Todos" ? c : `${c} · ${categoryLetter(c)}`}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
         <label className="check-field">
@@ -114,6 +117,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           <Table className="data-table">
             <TableHeader>
               <TableRow>
+                <TableHead>Código</TableHead>
                 <TableHead>Producto y variedad</TableHead>
                 <TableHead>Venta por</TableHead>
                 <TableHead className="number">Precio</TableHead>
@@ -125,6 +129,9 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
             <TableBody>
               {products.map((p) => (
                 <TableRow key={p.id}>
+                  <TableCell>
+                    <span className="product-code">{productCode(p)}</span>
+                  </TableCell>
                   <TableCell>
                     <button
                       className="table-product"
