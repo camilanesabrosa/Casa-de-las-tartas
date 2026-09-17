@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createDemo, lineTotal, summary } from "../lib/business";
+import { categoryRanking, createDemo, lineTotal, summary } from "../lib/business";
 import { applyAction } from "../lib/actions";
 import { publicCatalog } from "../lib/catalog";
 test("el catálogo solo expone productos publicados y campos públicos", () => {
@@ -25,6 +25,32 @@ test("editar fotos acepta HTTPS y rechaza contenido ejecutable o incrustado", ()
 test("250 gramos se cobran a un cuarto del precio por kilo, con redondeo al centavo", () => {
   assert.equal(lineTotal(850000, 250), 212500);
   assert.equal(lineTotal(999, 333), 333);
+});
+test("el ranking suma por categoría, ordena de mayor a menor y no pierde importe", () => {
+  const b = createDemo();
+  const sales = summary(b, 30).sales;
+  const ranking = categoryRanking(b.products, sales);
+  assert.ok(ranking.length > 0);
+  for (let i = 1; i < ranking.length; i++)
+    assert.ok(ranking[i - 1].amount >= ranking[i].amount);
+  assert.equal(
+    ranking.reduce((a, c) => a + c.amount, 0),
+    sales.reduce(
+      (a, s) => a + s.items.reduce((t, i) => t + lineTotal(i.price, i.quantity), 0),
+      0,
+    ),
+  );
+  assert.ok(ranking.every((c) => b.products.some((p) => p.category === c.name)));
+});
+test("el ranking agrupa bajo Sin categoría los productos borrados", () => {
+  const b = createDemo();
+  const sales = summary(b, 30).sales;
+  assert.ok(sales.length > 0);
+  const ranking = categoryRanking([], sales);
+  assert.deepEqual(
+    ranking.map((c) => c.name),
+    ["Sin categoría"],
+  );
 });
 test("cada stock de muestra se explica por sus movimientos", () => {
   const b = createDemo();

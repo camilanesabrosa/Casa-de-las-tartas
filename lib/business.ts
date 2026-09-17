@@ -580,6 +580,22 @@ export function summary(b: Business, days = 7) {
   };
 }
 
+export function categoryRanking(products: Product[], sales: Sale[]) {
+  const category = new Map(products.map((p) => [p.id, p.category]));
+  const totals = new Map<string, number>();
+  for (const sale of sales)
+    for (const item of sale.items) {
+      const name = category.get(item.productId) || "Sin categoría";
+      totals.set(
+        name,
+        (totals.get(name) || 0) + lineTotal(item.price, item.quantity),
+      );
+    }
+  return [...totals]
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, "es"));
+}
+
 export const varieties = [
   "Verdura y queso",
   "Verdura y ricota",
