@@ -501,34 +501,21 @@ export function Dashboard({
         </div>
       </div>
       <div className="metrics">
-        <div className="metric">
+        <div className="metric positive">
           <span>
-            <i className="dot brand-dot" />
+            <i className="dot success-dot" />
             Cobrado en ventas
           </span>
           <strong>{money(s.received)}</strong>
           <small>{s.sales.length} ventas en el período</small>
         </div>
-        <div className="metric">
+        <div className="metric negative">
           <span>
-            <i className="dot secondary-dot" />
+            <i className="dot red-dot" />
             Pagado en compras y gastos
           </span>
           <strong>{money(s.paid)}</strong>
           <small>Dinero que salió en el período</small>
-        </div>
-        <div className="metric">
-          <span>
-            <i className="dot amber" />
-            Pendiente de pago
-          </span>
-          <strong>{money(s.debt)}</strong>
-          <small>Deuda total al día de hoy</small>
-        </div>
-        <div className="metric balance">
-          <span>Dinero disponible</span>
-          <strong>{money(s.balance)}</strong>
-          <small>Saldo acumulado · todos los medios</small>
         </div>
       </div>
       <div className="dashboard-grid">
