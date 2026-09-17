@@ -1019,6 +1019,22 @@ td small {
 .filter-tabs button:hover {
   color: var(--brand-strong);
 }
+.product-code {
+  display: inline-block;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--secondary);
+  color: var(--brand-strong);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.category-label .product-code {
+  margin-left: auto;
+}
 .section-tabs {
   height: auto;
   display: flex;
