@@ -209,12 +209,14 @@ export default function Catalog({ initialData }: { initialData?: CatalogData }) 
                 <article className={`panel catalog-product${isNew ? " catalog-product-new" : ""}`} key={p.id}>
                   <div className="catalog-product-photo">
                     <ProductPhoto imageUrl={p.imageUrl} name={p.name} variety={p.variety} />
+                    <span className="product-code photo-code" aria-label={`Código ${productCode(p)}`}>
+                      {productCode(p)}
+                    </span>
                     {isNew && <span className="catalog-new-badge">Nuevo producto</span>}
                   </div>
                   <span className="category-label">
                     <Icon />
                     {p.category}
-                    <span className="product-code">{productCode(p)}</span>
                   </span>
                   <h2>{p.name}</h2>
                   <p className="variety">
