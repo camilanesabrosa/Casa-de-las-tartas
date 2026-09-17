@@ -5,6 +5,11 @@ const quantity = z.number().int().positive().max(1_000_000_000);
 const text = z.string().trim().min(1).max(160);
 const productSchema = z.object({
   id: z.string().optional(),
+  number: z
+    .number()
+    .int()
+    .min(1, "El número del cartel debe ser 1 o mayor.")
+    .max(999, "El número del cartel no puede pasar de 999."),
   name: text,
   variety: z.string().trim().max(160),
   category: text,
