@@ -36,7 +36,6 @@ import {
   ProductEditor,
   StockEditor,
   PurchaseEditor,
-  SupplierEditor,
   ExpenseEditor,
   PayEditor,
   SaleDetail,
@@ -342,8 +341,7 @@ export function SalesView({
     </>
   );
 }
-export function SuppliersView({ data, save }: { data: Business; save: Save }) {
-  const [add, setAdd] = useState(false);
+function PurchasesPanel({ data, save }: { data: Business; save: Save }) {
   const [purchase, setPurchase] = useState(false);
   const [pay, setPay] = useState<Business["purchases"][number] | null>(null);
   const debt = data.purchases.reduce((a, p) => a + p.total - p.paid, 0);
@@ -351,40 +349,17 @@ export function SuppliersView({ data, save }: { data: Business; save: Save }) {
     <>
       <div className="view-toolbar">
         <div>
-          <p className="muted">Total pendiente a proveedores</p>
+          <p className="muted">Total pendiente de compras</p>
           <div className="big-number">{money(debt)}</div>
         </div>
-        <div className="button-group">
-          <Button className="btn" onClick={() => setAdd(true)}>
-            <Plus />
-            Proveedor
-          </Button>
-          <Button
-            className="btn primary"
-            onClick={() => setPurchase(true)}
-            disabled={!data.suppliers.length || !data.products.length}
-          >
-            <ArrowDownToLine />
-            Ingresó mercadería
-          </Button>
-        </div>
-      </div>
-      <div className="supplier-grid">
-        {data.suppliers.map((s) => {
-          const owed = data.purchases
-            .filter((p) => p.supplierId === s.id)
-            .reduce((a, p) => a + p.total - p.paid, 0);
-          return (
-            <article key={s.id} className="panel supplier-card">
-              <h3>{s.name}</h3>
-              <p className="muted">{s.phone || "Sin teléfono cargado"}</p>
-              <div className="supplier-balance">
-                <span>Pendiente</span>
-                <strong>{money(owed)}</strong>
-              </div>
-            </article>
-          );
-        })}
+        <Button
+          className="btn primary"
+          onClick={() => setPurchase(true)}
+          disabled={!data.suppliers.length || !data.products.length}
+        >
+          <ArrowDownToLine />
+          Ingresó mercadería
+        </Button>
       </div>
       <section className="panel">
         <div className="panel-heading">
@@ -399,7 +374,7 @@ export function SuppliersView({ data, save }: { data: Business; save: Save }) {
           <Table className="data-table">
             <TableHeader>
               <TableRow>
-                <TableHead>Proveedor / compra</TableHead>
+                <TableHead>Compra</TableHead>
                 <TableHead>Mercadería</TableHead>
                 <TableHead className="number">Total</TableHead>
                 <TableHead className="number">Pagado</TableHead>
@@ -414,15 +389,8 @@ export function SuppliersView({ data, save }: { data: Business; save: Save }) {
                 .map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      <strong>
-                        {
-                          data.suppliers.find((s) => s.id === p.supplierId)
-                            ?.name
-                        }
-                      </strong>
-                      <small>
-                        {p.id} · {displayDate(p.date)}
-                      </small>
+                      <strong>{p.id}</strong>
+                      <small>{displayDate(p.date)}</small>
                     </TableCell>
                     <TableCell>
                       {data.products.find((pr) => pr.id === p.productId)?.name}
@@ -459,7 +427,6 @@ export function SuppliersView({ data, save }: { data: Business; save: Save }) {
           </div>
         )}
       </section>
-      {add && <SupplierEditor save={save} close={() => setAdd(false)} />}{" "}
       {purchase && (
         <PurchaseEditor
           data={data}
@@ -479,6 +446,7 @@ export function SuppliersView({ data, save }: { data: Business; save: Save }) {
   );
 }
 export function ExpensesView({ data, save }: { data: Business; save: Save }) {
+  const [section, setSection] = useState("gastos");
   const [add, setAdd] = useState(false);
   const [pay, setPay] = useState<Business["expenses"][number] | null>(null);
   const [filter, setFilter] = useState("Todos");
@@ -489,86 +457,106 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
   );
   return (
     <>
-      <div className="view-toolbar">
-        <Tabs value={filter} onValueChange={setFilter}>
-          <TabsList className="filter-tabs">
-            {["Todos", "Fijo", "Variable", "Pendientes"].map((c) => (
-              <TabsTrigger key={c} value={c}>
-                {c === "Fijo" ? "Fijos" : c === "Variable" ? "Variables" : c}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <Button className="btn primary" onClick={() => setAdd(true)}>
-          <Plus />
-          Registrar gasto
-        </Button>
-      </div>
-      <section className="panel">
-        <div className="table-scroll">
-          <Table className="data-table">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Gasto</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="number">Importe</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Acción</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items
-                .slice()
-                .reverse()
-                .map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell>
-                      <strong>{e.name}</strong>
-                      <small>{displayDate(e.date)}</small>
-                    </TableCell>
-                    <TableCell>{e.category}</TableCell>
-                    <TableCell className="number">{money(e.amount)}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`status ${e.paid ? "success" : "warning"}`}
-                      >
-                        {e.paid ? "Pagado" : "Pendiente"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {!e.paid && (
-                        <button className="text-link" onClick={() => setPay(e)}>
-                          Marcar como pagado
-                        </button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+      <Tabs value={section} onValueChange={setSection}>
+        <TabsList className="section-tabs">
+          <TabsTrigger value="gastos">Gastos</TabsTrigger>
+          <TabsTrigger value="compras">Compras</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {section === "compras" && <PurchasesPanel data={data} save={save} />}
+      {section === "gastos" && (
+        <>
+          <div className="view-toolbar">
+            <Tabs value={filter} onValueChange={setFilter}>
+              <TabsList className="filter-tabs">
+                {["Todos", "Fijo", "Variable", "Pendientes"].map((c) => (
+                  <TabsTrigger key={c} value={c}>
+                    {c === "Fijo"
+                      ? "Fijos"
+                      : c === "Variable"
+                        ? "Variables"
+                        : c}
+                  </TabsTrigger>
                 ))}
-            </TableBody>
-          </Table>
-        </div>
-        {!items.length && (
-          <div className="empty">
-            <h3>No hay gastos en esta selección</h3>
-            <p>Registrá los gastos fijos y variables del negocio.</p>
+              </TabsList>
+            </Tabs>
+            <Button className="btn primary" onClick={() => setAdd(true)}>
+              <Plus />
+              Registrar gasto
+            </Button>
           </div>
-        )}
-      </section>
-      {add && <ExpenseEditor save={save} close={() => setAdd(false)} />}{" "}
-      {pay && (
-        <Modal
-          title="Pagar gasto"
-          description={`${pay.name} · ${money(pay.amount)}`}
-          close={() => setPay(null)}
-        >
-          <Form
-            close={() => setPay(null)}
-            label="Confirmar pago"
-            submit={() => save({ type: "payExpense", id: pay.id })}
-          >
-            <p>El importe se descontará del dinero disponible.</p>
-          </Form>
-        </Modal>
+          <section className="panel">
+            <div className="table-scroll">
+              <Table className="data-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Gasto</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="number">Importe</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items
+                    .slice()
+                    .reverse()
+                    .map((e) => (
+                      <TableRow key={e.id}>
+                        <TableCell>
+                          <strong>{e.name}</strong>
+                          <small>{displayDate(e.date)}</small>
+                        </TableCell>
+                        <TableCell>{e.category}</TableCell>
+                        <TableCell className="number">
+                          {money(e.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`status ${e.paid ? "success" : "warning"}`}
+                          >
+                            {e.paid ? "Pagado" : "Pendiente"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {!e.paid && (
+                            <button
+                              className="text-link"
+                              onClick={() => setPay(e)}
+                            >
+                              Marcar como pagado
+                            </button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+            {!items.length && (
+              <div className="empty">
+                <h3>No hay gastos en esta selección</h3>
+                <p>Registrá los gastos fijos y variables del negocio.</p>
+              </div>
+            )}
+          </section>
+          {add && <ExpenseEditor save={save} close={() => setAdd(false)} />}{" "}
+          {pay && (
+            <Modal
+              title="Pagar gasto"
+              description={`${pay.name} · ${money(pay.amount)}`}
+              close={() => setPay(null)}
+            >
+              <Form
+                close={() => setPay(null)}
+                label="Confirmar pago"
+                submit={() => save({ type: "payExpense", id: pay.id })}
+              >
+                <p>El importe se descontará del dinero disponible.</p>
+              </Form>
+            </Modal>
+          )}
+        </>
       )}
     </>
   );
