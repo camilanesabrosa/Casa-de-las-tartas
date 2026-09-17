@@ -1,13 +1,5 @@
 "use client";
 import { appPath } from "@/lib/paths";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { useState, useEffect, useRef } from "react";
 import {
   Store,
@@ -40,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
+  categoryRanking,
   createDemo,
   money,
   quantityLabel,
@@ -418,6 +411,11 @@ function MenuNav({
     </nav>
   );
 }
+const periodLabel: Record<number, string> = {
+  1: "Cobrado por categoría hoy",
+  7: "Cobrado por categoría en los últimos 7 días",
+  30: "Cobrado por categoría en los últimos 30 días",
+};
 export function Dashboard({
   data,
   days,
@@ -430,6 +428,7 @@ export function Dashboard({
   navigate: (s: string) => void;
 }) {
   const s = summary(data, days);
+  const ranking = categoryRanking(data.products, s.sales);
   const chart = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - 6 + i);
@@ -550,63 +549,47 @@ export function Dashboard({
           </button>
         </section>
       </div>
-      <section className="panel sales-panel">
+      <section className="panel category-panel">
         <div className="panel-heading">
           <div>
-            <h2>Últimas ventas</h2>
-            <p>Lo que pasó en tu mostrador</p>
+            <h2>Categoría más vendida</h2>
+            <p>{periodLabel[days] || "Del período elegido"}</p>
           </div>
-          <button className="text-link" onClick={() => navigate("sales")}>
-            Ver todas <ArrowRight />
-          </button>
+          {ranking.length > 0 && (
+            <span className="legend">
+              <i className="dot brand-dot" />
+              {ranking[0].name}
+            </span>
+          )}
         </div>
-        <div className="table-scroll">
-          <Table className="data-table">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Venta</TableHead>
-                <TableHead>Productos</TableHead>
-                <TableHead>Medio de pago</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="number">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.sales
-                .slice()
-                .reverse()
-                .slice(0, 4)
-                .map((v) => (
-                  <TableRow key={v.id}>
-                    <TableCell>
-                      <strong>{v.id}</strong>
-                      <small>
-                        {new Intl.DateTimeFormat("es-AR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: "America/Argentina/Mendoza",
-                        }).format(new Date(v.date))}
-                      </small>
-                    </TableCell>
-                    <TableCell>
-                      {v.items.map((i) => i.name).join(", ")}
-                    </TableCell>
-                    <TableCell>{v.method}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`status ${v.cancelled ? "neutral" : "success"}`}
-                      >
-                        {v.cancelled ? "Anulada" : "Cobrada"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="number">{money(v.total)}</TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </div>
+        {ranking.length > 0 ? (
+          <div
+            className="category-chart"
+            role="img"
+            aria-label={ranking
+              .map((c) => `${c.name}: ${money(c.amount)}`)
+              .join(", ")}
+          >
+            {ranking.map((c, i) => (
+              <div className="category-row" key={c.name}>
+                <span className="category-name">{c.name}</span>
+                <div className="category-track">
+                  <div
+                    className={`category-bar ${i === 0 ? "leader" : ""}`}
+                    style={{
+                      width: `${Math.max((c.amount / ranking[0].amount) * 100, 2)}%`,
+                    }}
+                  />
+                </div>
+                <span className="category-amount">{money(c.amount)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="category-empty">
+            Todavía no hay ventas en este período.
+          </p>
+        )}
       </section>
     </>
   );
