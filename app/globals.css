@@ -415,7 +415,7 @@ strong {
 }
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   background: var(--paper);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -450,9 +450,11 @@ strong {
   font-size: 12px;
   color: var(--muted-foreground);
 }
-.metric.balance {
-  background: var(--brand-soft);
-  color: var(--brand-strong);
+.metric.positive > strong {
+  color: var(--success);
+}
+.metric.negative > strong {
+  color: var(--red);
 }
 .dot {
   width: 8px;
@@ -462,6 +464,12 @@ strong {
 }
 .brand-dot {
   background: var(--brand);
+}
+.success-dot {
+  background: var(--success);
+}
+.red-dot {
+  background: var(--red);
 }
 .secondary-dot {
   background: var(--chart-secondary);
@@ -710,15 +718,6 @@ td small {
   }
 }
 @media (max-width: 1000px) {
-  .metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .metric:nth-child(2) {
-    border-right: 0;
-  }
-  .metric:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--border);
-  }
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
