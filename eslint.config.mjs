@@ -14,6 +14,14 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
   ]),
   {
+    files: ["electron/**/*.cjs"],
+    rules: {
+      // El proceso principal de Electron corre en CommonJS, fuera del bundle
+      // de la aplicación: require() es la forma correcta de cargar sus módulos.
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
     rules: {
       // These files are vendored verbatim from shadcn@4.17.0. Keep the
