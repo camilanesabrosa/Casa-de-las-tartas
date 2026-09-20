@@ -9,6 +9,7 @@ import {
   ReceiptText,
   Settings,
   ArrowDownToLine,
+  Wallet,
   Plus,
   ArrowRight,
   CalendarDays,
@@ -36,12 +37,15 @@ import {
   quantityLabel,
   summary,
   dateKey,
+  openRegister,
   Business,
 } from "@/lib/business";
 import {
   SaleEditor,
   CashEditor,
   PurchaseEditor,
+  RegisterOpenEditor,
+  RegisterCloseEditor,
   downloadJSON,
   type Save,
 } from "./components";
@@ -65,6 +69,7 @@ export default function BusinessApp() {
   const [saleOpen, setSaleOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const pending = useRef<{ key: string; id: string } | null>(null);
@@ -188,6 +193,7 @@ export default function BusinessApp() {
         )}
       </main>
     );
+  const caja = openRegister(data);
   const titles: Record<string, string> = {
     overview: "Tu negocio, de un vistazo",
     sales: "Tus ventas",
@@ -277,6 +283,13 @@ export default function BusinessApp() {
                 Nueva venta
               </Button>
               <Button
+                className={`btn ${caja ? "register-open" : ""}`}
+                onClick={() => setRegisterOpen(true)}
+              >
+                <Wallet />
+                {caja ? "Cerrar caja" : "Abrir caja"}
+              </Button>
+              <Button
                 className="btn"
                 onClick={() => setPurchaseOpen(true)}
                 disabled={!data.suppliers.length || !data.products.length}
@@ -349,6 +362,16 @@ export default function BusinessApp() {
         <SaleEditor data={data} save={save} close={() => setSaleOpen(false)} />
       )}{" "}
       {cashOpen && <CashEditor save={save} close={() => setCashOpen(false)} />}
+      {registerOpen &&
+        (caja ? (
+          <RegisterCloseEditor
+            data={data}
+            save={save}
+            close={() => setRegisterOpen(false)}
+          />
+        ) : (
+          <RegisterOpenEditor save={save} close={() => setRegisterOpen(false)} />
+        ))}
       {purchaseOpen && (
         <PurchaseEditor
           data={data}
