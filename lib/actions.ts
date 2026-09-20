@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { type Business, type Product, lineTotal } from "./business";
+import {
+  type Business,
+  type Product,
+  lineTotal,
+  openRegister,
+  registerExpected,
+} from "./business";
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
 const text = z.string().trim().min(1).max(160);
@@ -81,6 +87,14 @@ export const actionSchema = z.discriminatedUnion("type", [
     kind: z.enum(["deposit", "withdrawal"]),
     amount: amount.refine((n) => n > 0),
     reason: text,
+  }),
+  z.object({
+    type: z.literal("openRegister"),
+    opening: amount,
+  }),
+  z.object({
+    type: z.literal("closeRegister"),
+    counted: amount,
   }),
   z.object({
     type: z.literal("settings"),
@@ -275,6 +289,35 @@ export function applyAction(
     case "cash":
       payment(a.kind, a.amount, a.reason);
       break;
+    case "openRegister": {
+      if (openRegister(b))
+        throw new Error("Ya hay una caja abierta. Cerrala antes de abrir otra.");
+      b.registers.push({
+        id: id("CAJA"),
+        openedAt: now,
+        opening: a.opening,
+      });
+      break;
+    }
+    case "closeRegister": {
+      const open = openRegister(b);
+      if (!open) throw new Error("No hay ninguna caja abierta.");
+      const expected = registerExpected(b, open, now);
+      const difference = a.counted - expected;
+      open.closedAt = now;
+      open.counted = a.counted;
+      open.expected = expected;
+      open.difference = difference;
+      // El arqueo manda: si lo contado no coincide, se deja asentada la
+      // diferencia para que el dinero del sistema siga a la realidad.
+      if (difference !== 0)
+        payment(
+          difference > 0 ? "deposit" : "withdrawal",
+          Math.abs(difference),
+          `Diferencia de caja ${open.id}`,
+        );
+      break;
+    }
     case "settings":
       b.settings = { name: a.name, whatsapp: a.whatsapp, address: a.address };
       break;
