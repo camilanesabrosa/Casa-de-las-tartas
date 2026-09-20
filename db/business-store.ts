@@ -1,5 +1,10 @@
 import { env } from "cloudflare:workers";
-import { createDemo, withProductNumbers, type Business } from "@/lib/business";
+import {
+  createDemo,
+  withProductNumbers,
+  withRegisters,
+  type Business,
+} from "@/lib/business";
 import { applyAction } from "@/lib/actions";
 type Stored = Business & { completedRequests?: string[] };
 function db() {
@@ -25,7 +30,7 @@ export async function readBusiness(ownerId: string): Promise<Stored> {
       .first<{ payload: string }>();
   }
   if (!row) throw new Error("No pudimos abrir los datos del negocio.");
-  return withProductNumbers(JSON.parse(row.payload) as Stored);
+  return withRegisters(withProductNumbers(JSON.parse(row.payload) as Stored));
 }
 export async function updateBusiness(
   ownerId: string,
