@@ -46,3 +46,6 @@ next-env.d.ts
 /work/
 
 *.tsbuildinfo
+
+# empaquetado de la aplicacion de escritorio
+/release/
