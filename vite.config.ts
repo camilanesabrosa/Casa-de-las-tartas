@@ -37,7 +37,7 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async () => {
-  if (process.env.MOSTRADOR_TARGET === "vps") {
+  if (process.env.MOSTRADOR_TARGET === "vps" || process.env.MOSTRADOR_TARGET === "app") {
     return {
       plugins: [vinext()],
       resolve: {
