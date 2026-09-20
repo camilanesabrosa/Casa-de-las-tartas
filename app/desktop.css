@@ -1,0 +1,75 @@
+/* Existing Figtree/IBM Plex Mono and violet palette; a 48px native drag strip.
+   Layout: [OS controls] [house + tart mark, centered name] [OS controls]. */
+:root {
+  --titlebar-height: 48px;
+}
+.desktop-titlebar {
+  position: fixed;
+  z-index: 100;
+  inset: 0 0 auto;
+  height: var(--titlebar-height);
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 144px;
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+.desktop-titlebar-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+.desktop-titlebar-name img {
+  flex: 0 0 auto;
+}
+.desktop-titlebar-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body:has(.desktop-titlebar) {
+  padding-top: var(--titlebar-height);
+}
+body:has(.desktop-titlebar) [data-slot="sidebar-wrapper"] {
+  min-height: calc(100svh - var(--titlebar-height));
+}
+body:has(.desktop-titlebar) [data-slot="sidebar-container"] {
+  top: var(--titlebar-height);
+  height: calc(100svh - var(--titlebar-height));
+}
+body:has(.desktop-titlebar) .loading-screen {
+  min-height: calc(100svh - var(--titlebar-height));
+}
+body:has(.desktop-titlebar) .skip-link:focus {
+  top: calc(var(--titlebar-height) + var(--space-2));
+}
+.brand {
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+}
+.brand-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+}
+.brand-wordmark {
+  font-size: 14px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+.brand-wordmark strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}

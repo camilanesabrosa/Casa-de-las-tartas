@@ -3,12 +3,9 @@ import { useState, type ReactNode, type FormEvent } from "react";
 import {
   Search,
   Plus,
-  Minus,
   X,
   Package,
-  ArrowRight,
   Check,
-  Download,
 } from "lucide-react";
 import {
   Dialog,
@@ -17,7 +14,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -40,6 +36,7 @@ import {
   openRegister,
 } from "@/lib/business";
 import { type Action } from "@/lib/actions";
+import { EXPORT_PREFIX } from "@/lib/branding";
 import ProductPhoto from "./product-photo";
 export type Save = (a: Action) => Promise<void>;
 export const displayDate = (date: string) =>
@@ -1090,7 +1087,7 @@ export function downloadJSON(data: Business) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `mostrador-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `${EXPORT_PREFIX}-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -1129,7 +1126,7 @@ export function downloadCSV(data: Business) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "mostrador-productos.csv";
+  a.download = `${EXPORT_PREFIX}-productos.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

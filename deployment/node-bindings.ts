@@ -35,6 +35,9 @@ class Statement {
   async first<T = Record<string, unknown>>(): Promise<T | null> {
     return (connection().prepare(this.sql).get(...this.values) as T | undefined) ?? null;
   }
+  async all<T = Record<string, unknown>>() {
+    return { success: true, results: connection().prepare(this.sql).all(...this.values) as T[] };
+  }
   execute() {
     const result = connection().prepare(this.sql).run(...this.values);
     return { success: true, meta: { changes: Number(result.changes) } };

@@ -7,7 +7,11 @@ const temp = await mkdtemp(join(tmpdir(), "mostrador-test-"));
 try {
   const outfile = join(temp, "business-test.mjs");
   await build({
-    entryPoints: ["tests/business.test.ts"],
+    stdin: {
+      contents: 'import "./tests/business.test.ts"; import "./tests/calendar.test.ts";',
+      resolveDir: process.cwd(),
+      loader: "ts",
+    },
     outfile,
     bundle: true,
     platform: "node",

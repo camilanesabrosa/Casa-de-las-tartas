@@ -1,8 +1,9 @@
 "use client";
 import { appPath } from "@/lib/paths";
+import { APP_NAME } from "@/lib/branding";
+import { CalendarView } from "./calendar-view";
 import { useState, useEffect, useRef } from "react";
 import {
-  Store,
   LayoutDashboard,
   ShoppingBasket,
   Package,
@@ -32,7 +33,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   categoryRanking,
-  createDemo,
   money,
   quantityLabel,
   summary,
@@ -60,7 +60,14 @@ export const navigation = [
   { id: "sales", label: "Ventas", icon: ShoppingBasket },
   { id: "products", label: "Productos y stock", icon: Package },
   { id: "expenses", label: "Gastos y compras", icon: ReceiptText },
+  { id: "calendar", label: "Calendario", icon: CalendarDays },
 ];
+async function fetchBusiness(signal?: AbortSignal): Promise<Business> {
+  const response = await fetch(appPath("/api/business"), { cache: "no-store", signal });
+  const result = (await response.json()) as Business & { error?: string };
+  if (!response.ok) throw new Error(result.error || "No pudimos cargar los datos.");
+  return result;
+}
 export default function BusinessApp() {
   const [data, setData] = useState<Business | null>(null);
   const [view, setView] = useState("overview");
@@ -74,12 +81,8 @@ export default function BusinessApp() {
   const [loading, setLoading] = useState(true);
   const pending = useRef<{ key: string; id: string } | null>(null);
   async function reload() {
-    setLoading(true);
     try {
-      const r = await fetch(appPath("/api/business"), { cache: "no-store" });
-      const j = (await r.json()) as Business & { error?: string };
-      if (!r.ok) throw new Error(j.error);
-      setData(j);
+      setData(await fetchBusiness());
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "No pudimos cargar los datos.");
@@ -88,7 +91,16 @@ export default function BusinessApp() {
     }
   }
   useEffect(() => {
-    void reload();
+    const controller = new AbortController();
+    void fetchBusiness(controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) { setData(result); setError(""); }
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "No pudimos cargar los datos.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
   useEffect(() => {
     if (!toast) return;
@@ -146,6 +158,7 @@ export default function BusinessApp() {
                   "sales",
                   "products",
                   "expenses",
+                  "calendar",
                   "settings",
                 ],
               },
@@ -162,6 +175,7 @@ export default function BusinessApp() {
                 "sales",
                 "products",
                 "expenses",
+                "calendar",
                 "settings",
               ].includes(value?.section)
             )
@@ -179,15 +193,14 @@ export default function BusinessApp() {
     return (
       <main className="loading-screen">
         <div className="brand">
-          <Store />
-          mostrador.
+          <Brand />
         </div>
         <h1>
           {error ? "No pudimos abrir el negocio" : "Abriendo tu negocio…"}
         </h1>
         <p>{error || "Cargando productos, ventas y movimientos."}</p>
         {error && (
-          <Button className="btn primary" onClick={() => void reload()}>
+          <Button className="btn primary" disabled={loading} onClick={() => { setLoading(true); void reload(); }}>
             Volver a intentar
           </Button>
         )}
@@ -200,13 +213,15 @@ export default function BusinessApp() {
     products: "Productos y stock",
     expenses: "Los gastos y las compras del negocio",
     settings: "Configuración",
+    calendar: "El saldo de cada día",
   };
   const subtitles: Record<string, string> = {
     overview: "Todo lo que necesitás para llevar el día en orden.",
     sales: "Cada venta, su cobro y los productos que salieron.",
     products: "Lo que entra, lo que sale y lo que queda.",
     expenses: "Tené a mano lo que pagaste y lo que queda pendiente.",
-    settings: "Los datos que hacen que Mostrador sea tuyo.",
+    settings: "Los datos y las preferencias de tu negocio.",
+    calendar: "Consultá tus ingresos, egresos y cierres de caja por semana o por mes.",
   };
   return (
     <SidebarProvider
@@ -217,12 +232,7 @@ export default function BusinessApp() {
       </a>
       <Sidebar className="app-sidebar">
         <SidebarHeader className="brand">
-          <span className="brand-mark">
-            <Store />
-          </span>
-          <span>
-            mostrador<span className="brand-period">.</span>
-          </span>
+          <Brand />
         </SidebarHeader>
         <div className="store-switch">
           <Leaf />
@@ -310,7 +320,7 @@ export default function BusinessApp() {
               <Button
                 className="btn"
                 disabled={loading}
-                onClick={() => void reload()}
+                onClick={() => { setLoading(true); void reload(); }}
               >
                 {loading ? "Actualizando…" : "Actualizar datos"}
               </Button>
@@ -335,6 +345,8 @@ export default function BusinessApp() {
                 </Button>
               </div>
             </>
+          ) : view === "calendar" ? (
+            <CalendarView data={data} />
           ) : view === "products" ? (
             <ProductsView data={data} save={save} />
           ) : view === "sales" ? (
@@ -354,7 +366,7 @@ export default function BusinessApp() {
           )}
         </main>
         <footer className="app-footer">
-          <span>Mostrador · Versión de muestra privada</span>
+          <span>{APP_NAME} · Versión de muestra privada</span>
           <span>Importes en pesos argentinos</span>
         </footer>
       </div>
@@ -390,6 +402,16 @@ export default function BusinessApp() {
     </SidebarProvider>
   );
 }
+function Brand() {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="brand-icon" src={appPath("/brand/icon.svg")} width={48} height={48} alt="" />
+      <span className="brand-wordmark">Casa de las<strong>Tartas</strong></span>
+    </>
+  );
+}
+
 function MenuNav({
   view,
   navigate,
@@ -500,6 +522,7 @@ export function Dashboard({
               Ventas
             </span>
           </div>
+          <div className="chart-scroll">
           <div
             className="chart"
             role="img"
@@ -509,15 +532,10 @@ export function Dashboard({
           >
             {chart.map((c, i) => (
               <div className="chart-column" key={c.key}>
-                <span className="bar-value">
-                  {new Intl.NumberFormat("es-AR", {
-                    notation: "compact",
-                    maximumFractionDigits: 0,
-                  }).format(c.amount / 100)}
-                </span>
+                <span className="bar-value">{money(c.amount)}</span>
                 <div
-                  className={`tick-bar ${i === 6 ? "today" : ""}`}
-                  style={{ height: `${Math.max((c.amount / max) * 144, 4)}px` }}
+                  className={`sales-bar ${i === 6 ? "today" : ""}`}
+                  style={{ height: `${(c.amount / max) * 144}px` }}
                 />
                 <span className={i === 6 ? "today-label" : ""}>
                   {i === 6 ? "Hoy" : c.label}
@@ -525,8 +543,9 @@ export function Dashboard({
               </div>
             ))}
           </div>
+          </div>
           <div className="chart-footer">
-            <span>Una venta a la vez, tu negocio crece.</span>
+            <span>Importes en pesos argentinos</span>
             <button className="text-link" onClick={() => navigate("sales")}>
               Ver ventas <ArrowRight />
             </button>

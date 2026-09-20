@@ -1,4 +1,4 @@
-# Mostrador
+# Casa de las Tartas
 
 Aplicación de escritorio para llevar ventas, productos, stock, compras y gastos
 de un negocio gastronómico. Corre en la computadora del negocio: abre su propio
@@ -18,6 +18,18 @@ npm run app:dist  # generar el instalador en release/
 
 Requiere Node 22.13 o posterior. `npm run dev` sigue abriendo la vista de
 desarrollo en el navegador, útil para iterar sobre la interfaz.
+
+La ventana usa una barra de título propia con los controles del sistema.
+El ícono editable está en `public/brand/icon.svg`; `npm run icons` regenera
+los archivos PNG, ICO e ICNS para escritorio. El nombre visible y el instalador
+usan Casa de las Tartas, conservando `mostrador` como carpeta interna de datos
+para mantener las bases existentes.
+
+En Calendario podés alternar entre semana y mes, consultar el saldo de cada día
+y ver su desglose de ventas, aportes, pagos y retiros. El saldo diario expresa
+ingresos menos egresos de todos los medios de pago, no el efectivo contado ni
+el acumulado. Las aperturas no se duplican como ingresos. Los casos pendientes
+del arqueo se detallan en `docs/revision-caja.md`.
 
 La base vive en la carpeta de datos del usuario: en Windows,
 `%APPDATA%\mostrador\business.sqlite`. Borrar ese archivo regenera la muestra.
@@ -54,8 +66,8 @@ Es una demostración para validar el alcance, no una entrega lista para manejar
 dinero real. La puesta en marcha necesita los datos reales de la clienta, copias
 automáticas y recuperación comprobada.
 
-Guarda el conjunto de datos en un documento con revisión, hasta 1 MB y 500
-variedades. Para uso sostenido debe migrarse a tablas por entidad. Los respaldos
+Guarda productos, ventas, compras, gastos y movimientos en tablas SQLite locales.
+La interfaz conserva el límite de 500 variedades. Los respaldos
 JSON se descargan, pero su recuperación todavía requiere asistencia técnica. No
 hay facturación fiscal, pagos online, fiado, recetas, lotes, vencimientos ni
 integración con balanzas. El saldo suma todos los medios de pago, sin
