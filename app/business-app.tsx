@@ -8,7 +8,6 @@ import {
   Package,
   ReceiptText,
   Settings,
-  ArrowUpRight,
   ArrowDownToLine,
   Plus,
   ArrowRight,
@@ -16,7 +15,6 @@ import {
   Leaf,
   Download,
   Check,
-  LogOut,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -75,7 +73,6 @@ export default function BusinessApp() {
     try {
       const r = await fetch(appPath("/api/business"), { cache: "no-store" });
       const j = (await r.json()) as Business & { error?: string };
-      if (r.status === 401) { window.location.assign(appPath("/admin/login")); return; }
       if (!r.ok) throw new Error(j.error);
       setData(j);
       setError("");
@@ -109,7 +106,6 @@ export default function BusinessApp() {
     });
     const result = (await r.json()) as Business & { error?: string };
     if (!r.ok) {
-      if (r.status === 401) setError("Tu sesión terminó. Abrí Administración en otra pestaña e iniciá sesión para guardar este formulario.");
       if (r.status === 409) setError(result.error || "No pudimos guardar.");
       throw new Error(result.error || "No pudimos guardar los cambios.");
     }
@@ -245,20 +241,6 @@ export default function BusinessApp() {
             <Settings />
             Configuración
           </button>
-          <div className="profile">
-            <span>DP</span>
-            <div>
-              <strong>Usuario de prueba</strong>
-              <small>Muestra compartida</small>
-            </div>
-          </div>
-          <button className="nav-button" onClick={async () => {
-            try {
-              const r = await fetch(appPath("/api/session"), { method: "DELETE" });
-              if (!r.ok) throw new Error("No pudimos cerrar la sesión. Volvé a intentar.");
-              window.location.assign(appPath("/"));
-            } catch (e) { setError(e instanceof Error ? e.message : "No pudimos cerrar la sesión."); }
-          }}><LogOut /> Cerrar sesión</button>
         </SidebarFooter>
       </Sidebar>
       <div className="workspace">
@@ -274,9 +256,6 @@ export default function BusinessApp() {
               {navigation.find((n) => n.id === view)?.label || "Configuración"}
             </strong>
           </div>
-          <a className="text-link" href={appPath("/")}>
-            Ver catálogo <ArrowUpRight />
-          </a>
         </header>
         <main id="main" className="main-content">
           <div className="page-heading">
@@ -414,15 +393,6 @@ function MenuNav({
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton className="nav-button" asChild>
-            <a href={appPath("/catalogo")}>
-              <Store />
-              <span>Catálogo digital</span>
-              <ArrowUpRight />
-            </a>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
       </SidebarMenu>
     </nav>
   );
