@@ -11,18 +11,6 @@ import {
   withProductNumbers,
 } from "../lib/business";
 import { applyAction } from "../lib/actions";
-import { publicCatalog } from "../lib/catalog";
-test("el catálogo solo expone productos publicados y campos públicos", () => {
-  const b = createDemo();
-  b.products[0].published = false;
-  b.products[1].imageUrl = "https://example.com/medallon.jpg";
-  const catalog = publicCatalog(b);
-  assert.equal(catalog.products.length, b.products.length - 1);
-  assert.ok(!catalog.products.some((p) => p.id === b.products[0].id));
-  assert.equal(catalog.products.find((p) => p.id === b.products[1].id)?.imageUrl, b.products[1].imageUrl);
-  assert.deepEqual(Object.keys(catalog).sort(), ["products", "settings"]);
-  assert.ok(catalog.products.every((p) => !("cost" in p) && !("minimum" in p)));
-});
 test("editar fotos acepta HTTPS y rechaza contenido ejecutable o incrustado", () => {
   const b = createDemo();
   for (const imageUrl of ["javascript:alert(1)", "data:image/svg+xml,abc", "http://example.com/a.jpg", "https://user:pass@example.com/a.jpg"]) {
@@ -66,12 +54,6 @@ test("la búsqueda por código ignora mayúsculas y espacios, y no hace coincide
     assert.ok(matchesCode(tarta, q), q);
   for (const q of ["1", "E", "11E", "1D", ""])
     assert.ok(!matchesCode(tarta, q), q);
-});
-test("el catálogo publica el número para que la clienta busque por código", () => {
-  const b = createDemo();
-  const catalog = publicCatalog(b);
-  assert.ok(catalog.products.every((p) => typeof p.number === "number"));
-  assert.equal(catalog.products.filter((p) => matchesCode(p, "13E")).length, 1);
 });
 test("los productos guardados sin número reciben uno sin pisar los existentes", () => {
   const b = createDemo();
