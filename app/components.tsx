@@ -38,7 +38,7 @@ import {
   categoryLetter,
 } from "@/lib/business";
 import { type Action } from "@/lib/actions";
-import ProductPhoto from "./catalogo/product-photo";
+import ProductPhoto from "./product-photo";
 export type Save = (a: Action) => Promise<void>;
 export const displayDate = (date: string) =>
   new Intl.DateTimeFormat("es-AR", {

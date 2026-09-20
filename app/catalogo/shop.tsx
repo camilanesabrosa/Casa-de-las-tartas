@@ -30,7 +30,7 @@ import {
 import { CartLines, type CartItem } from "../components";
 import type { CatalogProduct, CatalogData } from "@/lib/catalog";
 import { isNewCatalogProduct } from "@/lib/catalog";
-import ProductPhoto from "./product-photo";
+import ProductPhoto from "../product-photo";
 export default function Catalog({ initialData }: { initialData?: CatalogData }) {
   const [data, setData] = useState<CatalogData | null>(initialData || null);
   const [error, setError] = useState("");
