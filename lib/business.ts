@@ -60,6 +60,15 @@ export type Payment = {
   kind: "purchase" | "expense" | "deposit" | "withdrawal";
   reference: string;
 };
+export type Register = {
+  id: string;
+  openedAt: string;
+  opening: number;
+  closedAt?: string;
+  counted?: number;
+  expected?: number;
+  difference?: number;
+};
 export type Business = {
   version: number;
   settings: { name: string; whatsapp: string; address: string };
@@ -70,6 +79,7 @@ export type Business = {
   expenses: Expense[];
   movements: Movement[];
   payments: Payment[];
+  registers: Register[];
 };
 export const categories = [
   "Precocidos",
@@ -110,6 +120,48 @@ export function withProductNumbers<T extends Business>(b: T): T {
     }),
   };
 }
+export function withRegisters<T extends Business>(b: T): T {
+  return Array.isArray(b.registers) ? b : { ...b, registers: [] };
+}
+export const openRegister = (b: Business) =>
+  b.registers.find((r) => !r.closedAt);
+// Corte de turno sobre todos los medios de pago: lo que el turno debería haber
+// dejado es la apertura más todo lo que entró, menos todo lo que salió.
+export function registerExpected(b: Business, r: Register, until?: string) {
+  const within = (date: string) =>
+    date >= r.openedAt && (!until || date <= until);
+  const sales = b.sales
+    .filter((s) => !s.cancelled && within(s.date))
+    .reduce((a, s) => a + s.total, 0);
+  const moved = b.payments
+    .filter((x) => within(x.date))
+    .reduce((a, x) => a + (x.kind === "deposit" ? x.amount : -x.amount), 0);
+  return r.opening + sales + moved;
+}
+export function registerBreakdown(b: Business, r: Register) {
+  const until = r.closedAt;
+  const within = (date: string) =>
+    date >= r.openedAt && (!until || date <= until);
+  const sales = b.sales.filter((s) => !s.cancelled && within(s.date));
+  const byMethod = new Map<string, number>();
+  for (const s of sales)
+    byMethod.set(s.method, (byMethod.get(s.method) || 0) + s.total);
+  const paid = b.payments.filter((x) => within(x.date));
+  const sum = (kind: Payment["kind"]) =>
+    paid.filter((x) => x.kind === kind).reduce((a, x) => a + x.amount, 0);
+  return {
+    opening: r.opening,
+    sales: [...byMethod].map(([method, amount]) => ({ method, amount })),
+    salesTotal: sales.reduce((a, s) => a + s.total, 0),
+    salesCount: sales.length,
+    deposits: sum("deposit"),
+    withdrawals: sum("withdrawal"),
+    purchases: sum("purchase"),
+    expenses: sum("expense"),
+    expected: registerExpected(b, r, until),
+  };
+}
+
 export const money = (cents: number) =>
   new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -620,6 +672,7 @@ export function createDemo(now = new Date()): Business {
     purchases,
     expenses,
     payments,
+    registers: [],
     movements,
   };
 }
