@@ -9,6 +9,10 @@ import {
   productCode,
   summary,
   withProductNumbers,
+  withRegisters,
+  openRegister,
+  registerBreakdown,
+  registerExpected,
 } from "../lib/business";
 import { applyAction } from "../lib/actions";
 test("editar fotos acepta HTTPS y rechaza contenido ejecutable o incrustado", () => {
@@ -248,4 +252,72 @@ test("ajuste de merma no puede producir stock negativo", () => {
 test("las fechas de la muestra siguen el día de Argentina aunque UTC ya sea el siguiente", () => {
   const b = createDemo(new Date("2026-09-13T00:30:00Z"));
   assert.ok(b.sales.every((s) => s.date < "2026-09-13T00:30:00Z"));
+});
+test("abrir caja registra el saldo inicial y no permite dos abiertas", () => {
+  const b = createDemo();
+  assert.equal(openRegister(b), undefined);
+  const o = applyAction(b, { type: "openRegister", opening: 2000000 });
+  const caja = openRegister(o)!;
+  assert.equal(caja.opening, 2000000);
+  assert.equal(caja.closedAt, undefined);
+  // Abrir no mueve dinero: solo declara lo que ya estaba en el cajón.
+  assert.deepEqual(o.payments, b.payments);
+  assert.throws(
+    () => applyAction(o, { type: "openRegister", opening: 1000 }),
+    /Ya hay una caja abierta/,
+  );
+});
+test("el turno suma todos los medios de pago desde la apertura", () => {
+  const b = applyAction(createDemo(), { type: "openRegister", opening: 2000000 });
+  let n = b;
+  for (const method of ["Efectivo", "Transferencia", "Tarjeta"] as const)
+    n = applyAction(n, {
+      type: "sale",
+      items: [{ productId: "p11", quantity: 1000 }],
+      method,
+    });
+  n = applyAction(n, { type: "cash", kind: "withdrawal", amount: 50000, reason: "Retiro" });
+  const caja = openRegister(n)!;
+  const d = registerBreakdown(n, caja);
+  assert.equal(d.salesCount, 3);
+  assert.deepEqual(
+    d.sales.map((s) => s.method).sort(),
+    ["Efectivo", "Tarjeta", "Transferencia"],
+  );
+  assert.equal(d.withdrawals, 50000);
+  assert.equal(d.expected, 2000000 + d.salesTotal - 50000);
+  // Las ventas anteriores a la apertura no entran en el turno.
+  assert.ok(d.salesTotal < n.sales.reduce((a, s) => a + s.total, 0));
+});
+test("cerrar caja asienta la diferencia y el saldo sigue al arqueo", () => {
+  const b = applyAction(createDemo(), { type: "openRegister", opening: 2000000 });
+  const antes = summary(b).balance;
+  const esperado = registerExpected(b, openRegister(b)!);
+  const faltante = applyAction(b, { type: "closeRegister", counted: esperado - 30000 });
+  const caja = faltante.registers.at(-1)!;
+  assert.equal(caja.expected, esperado);
+  assert.equal(caja.difference, -30000);
+  assert.ok(caja.closedAt);
+  assert.equal(openRegister(faltante), undefined);
+  assert.equal(summary(faltante).balance, antes - 30000);
+  const sobrante = applyAction(b, { type: "closeRegister", counted: esperado + 30000 });
+  assert.equal(sobrante.registers.at(-1)!.difference, 30000);
+  assert.equal(summary(sobrante).balance, antes + 30000);
+  const exacto = applyAction(b, { type: "closeRegister", counted: esperado });
+  assert.equal(exacto.registers.at(-1)!.difference, 0);
+  assert.equal(summary(exacto).balance, antes);
+  assert.deepEqual(exacto.payments, b.payments, "sin diferencia no se mueve dinero");
+});
+test("no se puede cerrar una caja que no está abierta", () => {
+  const b = createDemo();
+  assert.throws(
+    () => applyAction(b, { type: "closeRegister", counted: 1000 }),
+    /No hay ninguna caja abierta/,
+  );
+});
+test("los negocios guardados sin caja siguen abriendo", () => {
+  const b = createDemo();
+  const legacy = { ...b, registers: undefined as never };
+  assert.deepEqual(withRegisters(legacy).registers, []);
+  assert.equal(withRegisters(b), b, "si ya tiene caja no copia el negocio");
 });
