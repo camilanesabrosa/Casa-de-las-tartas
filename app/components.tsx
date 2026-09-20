@@ -36,6 +36,8 @@ import {
   varieties,
   categories,
   categoryLetter,
+  registerBreakdown,
+  openRegister,
 } from "@/lib/business";
 import { type Action } from "@/lib/actions";
 import ProductPhoto from "./product-photo";
@@ -624,6 +626,132 @@ export function PayEditor({
           max={balance / 100}
           defaultValue={balance / 100}
         />
+      </Form>
+    </Modal>
+  );
+}
+export function RegisterOpenEditor({
+  save,
+  close,
+}: {
+  save: Save;
+  close: () => void;
+}) {
+  return (
+    <Modal
+      title="Abrir caja"
+      description="Anotá con cuánto arranca el turno. Abrir no mueve dinero: solo deja constancia de lo que ya hay."
+      close={close}
+    >
+      <Form
+        close={close}
+        label="Abrir caja"
+        submit={(f) => save({ type: "openRegister", opening: cents(f, "opening") })}
+      >
+        <Field
+          label="Con cuánto arrancás · $"
+          name="opening"
+          type="number"
+          min={0}
+          step="0.01"
+          defaultValue={0}
+          hint="Si arrancás sin fondo, dejá 0."
+        />
+      </Form>
+    </Modal>
+  );
+}
+export function RegisterCloseEditor({
+  data,
+  save,
+  close,
+}: {
+  data: Business;
+  save: Save;
+  close: () => void;
+}) {
+  const register = openRegister(data)!;
+  const d = registerBreakdown(data, register);
+  const [counted, setCounted] = useState("");
+  const typed = counted.trim() === "" ? null : Math.round(Number(counted) * 100);
+  const difference = typed === null || Number.isNaN(typed) ? null : typed - d.expected;
+  return (
+    <Modal
+      title="Cerrar caja"
+      description="Contá lo que hay y compará con lo que el turno debería haber dejado."
+      close={close}
+    >
+      <Form
+        close={close}
+        label="Cerrar caja"
+        submit={(f) => save({ type: "closeRegister", counted: cents(f, "counted") })}
+      >
+        <div className="register-summary">
+          <div>
+            <span>Apertura</span>
+            <strong>{money(d.opening)}</strong>
+          </div>
+          {d.sales.map((s) => (
+            <div key={s.method}>
+              <span>Ventas · {s.method.toLowerCase()}</span>
+              <strong>{money(s.amount)}</strong>
+            </div>
+          ))}
+          {d.deposits > 0 && (
+            <div>
+              <span>Aportes</span>
+              <strong>{money(d.deposits)}</strong>
+            </div>
+          )}
+          {d.withdrawals > 0 && (
+            <div>
+              <span>Retiros</span>
+              <strong className="negative">−{money(d.withdrawals)}</strong>
+            </div>
+          )}
+          {d.purchases > 0 && (
+            <div>
+              <span>Pagos a proveedores</span>
+              <strong className="negative">−{money(d.purchases)}</strong>
+            </div>
+          )}
+          {d.expenses > 0 && (
+            <div>
+              <span>Gastos pagados</span>
+              <strong className="negative">−{money(d.expenses)}</strong>
+            </div>
+          )}
+          <div className="register-expected">
+            <span>Debería haber</span>
+            <strong>{money(d.expected)}</strong>
+          </div>
+        </div>
+        <label className="field">
+          <span>Cuánto contaste · $</span>
+          <Input
+            name="counted"
+            className="field-input"
+            type="number"
+            min={0}
+            step="0.01"
+            value={counted}
+            onChange={(event) => setCounted(event.target.value)}
+            required
+          />
+        </label>
+        {difference !== null && (
+          <p className={`register-difference ${difference === 0 ? "even" : difference > 0 ? "over" : "short"}`}>
+            {difference === 0
+              ? "Justo: el arqueo coincide."
+              : difference > 0
+                ? `Sobran ${money(difference)}. Se registra como aporte.`
+                : `Faltan ${money(-difference)}. Se registra como retiro.`}
+          </p>
+        )}
+        <p className="hint-box">
+          {d.salesCount} {d.salesCount === 1 ? "venta" : "ventas"} en el turno.
+          Al cerrar, el dinero del sistema queda igual a lo que contaste.
+        </p>
       </Form>
     </Modal>
   );
