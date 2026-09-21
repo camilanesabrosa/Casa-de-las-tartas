@@ -8,11 +8,15 @@ const {
   dialog,
   Menu,
   nativeImage,
+  ipcMain,
 } = require("electron");
 const { fork } = require("node:child_process");
 const { createServer } = require("node:net");
 const { join } = require("node:path");
-const { mkdirSync } = require("node:fs");
+const { mkdirSync, existsSync } = require("node:fs");
+const { UpdateController, unavailableReason } = require("./updater.cjs");
+const { openUpdatePreferences } = require("./update-preferences.cjs");
+const { registerUpdateIpc, CHANGED_CHANNEL, trustedSender } = require("./update-ipc.cjs");
 
 const SERVER = join(__dirname, "..", "dist", "standalone", "server.js");
 const HOST = "127.0.0.1";
@@ -30,6 +34,58 @@ if (process.platform === "win32")
 
 let server;
 let window;
+let updates;
+let updatePreferences;
+let removeUpdateIpc;
+
+// The installer must never compete with another running copy of this app.
+const primaryInstance = app.requestSingleInstanceLock();
+if (!primaryInstance) app.quit();
+app.on("second-instance", () => {
+  if (!window) return;
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+});
+
+function setupUpdates(url) {
+  const origin = new URL(url).origin;
+  let reason = unavailableReason({ platform: process.platform, arch: process.arch,
+    packaged: app.isPackaged, configured: existsSync(join(process.resourcesPath, "app-update.yml")) });
+  let updater = null;
+  try {
+    updatePreferences = openUpdatePreferences(join(dataDirectory, "business.sqlite"));
+    if (!reason) updater = require("electron-updater").autoUpdater;
+  } catch (error) {
+    console.error("No se pudo iniciar el actualizador:", error);
+    reason = "No se pudo iniciar el actualizador. Cerrá y volvé a abrir la app para reintentar.";
+  }
+  updates = new UpdateController({
+    updater, reason, currentVersion: app.getVersion(),
+    preferences: updatePreferences || { read: () => ({ automatic: true, skippedVersion: null }) },
+    notify: (state) => {
+      if (window && !window.isDestroyed() && trustedSender({ sender: window.webContents,
+        senderFrame: window.webContents.mainFrame }, window, origin)) {
+        window.webContents.send(CHANGED_CHANNEL, state);
+      }
+    },
+    confirmInstall: async (version) => {
+      const { response } = await dialog.showMessageBox(window, {
+        type: "question",
+        title: "Instalar actualización",
+        message: `¿Instalar la versión ${version} y reiniciar?`,
+        detail: "Guardá los cambios pendientes antes de continuar. La app se cerrará para instalar la actualización. Los datos de tu negocio se conservan.",
+        buttons: ["Instalar y reiniciar", "Cancelar"],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+      });
+      return response === 0;
+    },
+  });
+  removeUpdateIpc = registerUpdateIpc({ ipcMain, window, origin, controller: updates });
+  updates.start();
+}
 
 // Puerto libre elegido por el sistema: la app no compite con nada del equipo.
 function freePort() {
@@ -122,13 +178,17 @@ function createWindow(url) {
   window.once("ready-to-show", () => window.show());
   // Cualquier enlace externo abre en el navegador, no dentro de la app.
   window.webContents.setWindowOpenHandler(({ url: target }) => {
-    void shell.openExternal(target);
+    if (/^https?:\/\//.test(target)) void shell.openExternal(target);
     return { action: "deny" };
   });
+  window.webContents.on("will-navigate", (event, target) => {
+    if (new URL(target).origin !== new URL(url).origin) event.preventDefault();
+  });
+  setupUpdates(url);
   void window.loadURL(url);
 }
 
-app.whenReady().then(async () => {
+if (primaryInstance) app.whenReady().then(async () => {
   if (process.platform === "darwin")
     app.dock.setIcon(nativeImage.createFromPath(ICON));
   app.setAboutPanelOptions({
@@ -203,6 +263,10 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   app.isQuitting = true;
+  updates?.stop();
+  removeUpdateIpc?.();
+  updatePreferences?.close();
+  updatePreferences = undefined;
   if (server && server.exitCode === null) server.kill();
 });
 

@@ -4,12 +4,6 @@ import { useSyncExternalStore } from "react";
 import { APP_NAME } from "@/lib/branding";
 import { appPath } from "@/lib/paths";
 
-declare global {
-  interface Window {
-    casaDesktop?: { readonly platform: string };
-  }
-}
-
 const subscribe = () => () => {};
 const getPlatform = () => window.casaDesktop?.platform;
 const getServerPlatform = () => undefined;

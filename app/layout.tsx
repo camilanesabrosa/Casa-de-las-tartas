@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./desktop.css";
 import "./calendar.css";
+import "./updates.css";
 import { appPath } from "@/lib/paths";
 import { APP_NAME } from "@/lib/branding";
 import { DesktopTitlebar } from "./desktop-titlebar";

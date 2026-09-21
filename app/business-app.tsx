@@ -2,6 +2,7 @@
 import { appPath } from "@/lib/paths";
 import { APP_NAME } from "@/lib/branding";
 import { CalendarView } from "./calendar-view";
+import { UpdateBanner, useDesktopUpdates } from "./updates";
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
@@ -69,6 +70,7 @@ async function fetchBusiness(signal?: AbortSignal): Promise<Business> {
   return result;
 }
 export default function BusinessApp() {
+  const updates = useDesktopUpdates();
   const [data, setData] = useState<Business | null>(null);
   const [view, setView] = useState("overview");
   const [days, setDays] = useState(7);
@@ -281,6 +283,7 @@ export default function BusinessApp() {
               </Button>
             </div>
           </header>
+          {view !== "settings" ? <UpdateBanner updates={updates} /> : null}
           {error && (
             <div className="error-banner" role="alert">
               <p>{error}</p>
@@ -326,6 +329,7 @@ export default function BusinessApp() {
             <ExpensesView data={data} save={save} />
           ) : (
             <SettingsView
+              updates={updates}
               data={data}
               save={save}
               back={() => setView("overview")}

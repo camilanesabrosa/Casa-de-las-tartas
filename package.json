@@ -15,6 +15,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "test": "node scripts/test-business.mjs",
+    "test:updates": "node --test tests/updater.test.mjs",
     "build:app": "node scripts/build-app.mjs",
     "app": "npm run build:app && electron .",
     "app:dist": "npm run build:app && electron-builder",
@@ -30,6 +31,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "drizzle-orm": "0.45.2",
+    "electron-updater": "6.8.9",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",
@@ -81,6 +83,10 @@
   "build": {
     "appId": "dev.sinnick.mostrador",
     "productName": "Casa de las Tartas",
+    "publish": {
+      "provider": "generic",
+      "url": "https://sinnick.dev/cdt/update/"
+    },
     "files": [
       "electron/**",
       "dist/standalone/**",
@@ -107,8 +113,11 @@
     },
     "nsis": {
       "oneClick": false,
+      "deleteAppDataOnUninstall": false,
       "allowToChangeInstallationDirectory": true,
-      "installerLanguages": ["es_ES"]
+      "installerLanguages": [
+        "es_ES"
+      ]
     },
     "asar": false
   }

@@ -37,6 +37,12 @@ los archivos PNG, ICO e ICNS para escritorio. El nombre visible y el instalador
 usan Casa de las Tartas, conservando `mostrador` como carpeta interna de datos
 para mantener las bases existentes.
 
+El actualizador para Windows x64 avisa cuando hay una nueva versión y permite
+descargarla e instalarla con confirmación. Las preferencias se guardan en SQLite.
+El canal configurado es `https://sinnick.dev/cdt/update/`; falta publicar allí
+los archivos de la próxima versión. El flujo y los pasos de publicación están
+en [Actualizaciones](docs/actualizaciones.md).
+
 En Calendario podés alternar entre semana y mes, consultar el saldo de cada día
 y ver su desglose de ventas, aportes, pagos y retiros. El saldo diario expresa
 ingresos menos egresos de todos los medios de pago, no el efectivo contado ni

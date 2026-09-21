@@ -1,4 +1,5 @@
 "use client";
+import { UpdateSettings, type useDesktopUpdates } from "./updates";
 import {
   Table,
   TableHeader,
@@ -572,10 +573,12 @@ export function SettingsView({
   data,
   save,
   back,
+  updates,
 }: {
   data: Business;
   save: Save;
   back: () => void;
+  updates: ReturnType<typeof useDesktopUpdates>;
 }) {
   return (
     <div className="settings-grid">
@@ -634,6 +637,7 @@ export function SettingsView({
           antes de usarla en el local.
         </div>
       </section>
+      <UpdateSettings updates={updates} />
     </div>
   );
 }
