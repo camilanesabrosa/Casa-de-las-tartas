@@ -8,7 +8,7 @@ try {
   const outfile = join(temp, "business-test.mjs");
   await build({
     stdin: {
-      contents: 'import "./tests/business.test.ts"; import "./tests/calendar.test.ts"; import "./tests/update-ui.test.tsx";',
+      contents: 'import "./tests/business.test.ts"; import "./tests/calendar.test.ts"; import "./tests/update-ui.test.tsx"; import "./tests/daily-sales.test.tsx";',
       resolveDir: process.cwd(),
       loader: "ts",
     },

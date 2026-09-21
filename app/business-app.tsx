@@ -3,6 +3,9 @@ import { appPath } from "@/lib/paths";
 import { APP_NAME } from "@/lib/branding";
 import { CalendarView } from "./calendar-view";
 import { UpdateBanner, useDesktopUpdates } from "./updates";
+import { DailySalesShortcut } from "./daily-sales";
+import { useBusinessDay } from "@/hooks/use-business-day";
+import { allSalesFilters, todaySalesFilters, type SalesFilters } from "@/lib/sales";
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
@@ -15,7 +18,6 @@ import {
   Plus,
   ArrowRight,
   CalendarDays,
-  Leaf,
   Download,
   Check,
 } from "lucide-react";
@@ -71,8 +73,10 @@ async function fetchBusiness(signal?: AbortSignal): Promise<Business> {
 }
 export default function BusinessApp() {
   const updates = useDesktopUpdates();
+  const today = useBusinessDay();
   const [data, setData] = useState<Business | null>(null);
   const [view, setView] = useState("overview");
+  const [salesFilters, setSalesFilters] = useState<SalesFilters>(allSalesFilters);
   const [days, setDays] = useState(7);
   const [error, setError] = useState("");
   const [saleOpen, setSaleOpen] = useState(false);
@@ -182,6 +186,7 @@ export default function BusinessApp() {
               ].includes(value?.section)
             )
               throw new Error("Sección no válida.");
+            if (value.section === "sales") setSalesFilters(allSalesFilters);
             setView(value.section);
             return { section: value.section };
           },
@@ -210,6 +215,10 @@ export default function BusinessApp() {
     );
   const caja = openRegister(data);
   const title = navigation.find((item) => item.id === view)?.label || "Configuración";
+  function navigate(section: string) {
+    if (section === "sales") setSalesFilters(allSalesFilters);
+    setView(section);
+  }
   return (
     <SidebarProvider
       style={{ "--sidebar-width": "232px" } as React.CSSProperties}
@@ -221,15 +230,12 @@ export default function BusinessApp() {
         <SidebarHeader className="brand">
           <Brand />
         </SidebarHeader>
-        <div className="store-switch">
-          <Leaf />
-          <div>
-            <strong>{data.settings.name}</strong>
-            <span>Mi negocio</span>
-          </div>
-        </div>
+        <DailySalesShortcut sales={data.sales} day={today} onOpen={() => {
+          setSalesFilters(todaySalesFilters);
+          setView("sales");
+        }} />
         <SidebarContent className="admin-sidebar-content">
-          <MenuNav view={view} navigate={setView} />
+          <MenuNav view={view} navigate={navigate} />
         </SidebarContent>
         <SidebarFooter>
           <div className="sidebar-note">
@@ -302,7 +308,7 @@ export default function BusinessApp() {
                 data={data}
                 days={days}
                 setDays={setDays}
-                navigate={setView}
+                navigate={navigate}
               />
               <div className="dashboard-actions">
                 <Button className="btn" onClick={() => setCashOpen(true)}>
@@ -323,6 +329,9 @@ export default function BusinessApp() {
             <SalesView
               data={data}
               save={save}
+              today={today}
+              filters={salesFilters}
+              setFilters={setSalesFilters}
               newSale={() => setSaleOpen(true)}
             />
           ) : view === "expenses" ? (

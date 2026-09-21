@@ -8,7 +8,8 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
+import { filterSales, type SalesFilters } from "@/lib/sales";
 import {
   Search,
   Plus,
@@ -19,6 +20,7 @@ import {
   Check,
   Phone,
   ArrowRight,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -243,25 +245,20 @@ export function SalesView({
   data,
   save,
   newSale,
+  today,
+  filters,
+  setFilters,
 }: {
   data: Business;
   save: Save;
   newSale: () => void;
+  today: string;
+  filters: SalesFilters;
+  setFilters: Dispatch<SetStateAction<SalesFilters>>;
 }) {
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState("Todas");
   const [sale, setSale] = useState<Sale | null>(null);
-  const sales = data.sales
-    .filter(
-      (s) =>
-        (filter === "Todas" ||
-          (filter === "Anuladas" ? s.cancelled : !s.cancelled)) &&
-        `${s.id} ${s.items.map((i) => i.name).join(" ")}`
-          .toLowerCase()
-          .includes(q.toLowerCase()),
-    )
-    .slice()
-    .reverse();
+  const sales = filterSales(data.sales, filters, today);
+  const received = sales.reduce((total, sale) => total + (sale.cancelled ? 0 : sale.total), 0);
   return (
     <>
       <div className="view-toolbar">
@@ -270,11 +267,14 @@ export function SalesView({
           <Input
             aria-label="Buscar ventas"
             placeholder="Buscar venta o producto…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={filters.query}
+            onChange={(e) => setFilters((previous) => ({ ...previous, query: e.target.value }))}
           />
         </div>
-        <Tabs value={filter} onValueChange={setFilter}>
+        <Tabs value={filters.status} onValueChange={(status) => {
+          if (status === "Todas" || status === "Cobradas" || status === "Anuladas")
+            setFilters((previous) => ({ ...previous, status }));
+        }}>
           <TabsList className="filter-tabs">
             {["Todas", "Cobradas", "Anuladas"].map((c) => (
               <TabsTrigger key={c} value={c}>
@@ -283,6 +283,20 @@ export function SalesView({
             ))}
           </TabsList>
         </Tabs>
+      </div>
+      <div className="sales-period-row">
+        <div className="period-control">
+          <CalendarDays aria-hidden="true" />
+          <select aria-label="Período de ventas" value={filters.period}
+            onChange={(e) => {
+              const period = e.target.value === "today" ? "today" : "all";
+              setFilters((previous) => ({ ...previous, period }));
+            }}>
+            <option value="all">Todas las fechas</option>
+            <option value="today">Hoy</option>
+          </select>
+        </div>
+        <p>{sales.length} {sales.length === 1 ? "venta" : "ventas"} · <strong>{money(received)}</strong> cobrado</p>
       </div>
       <section className="panel">
         <div className="table-scroll">
@@ -335,8 +349,8 @@ export function SalesView({
         </div>
         {!sales.length && (
           <div className="empty">
-            <h3>No hay ventas para mostrar</h3>
-            <p>Las ventas que registres aparecerán acá.</p>
+            <h3>{filters.period === "today" ? "No hay ventas de hoy con estos filtros" : "No hay ventas con estos filtros"}</h3>
+            <p>Podés cambiar la fecha, el estado o la búsqueda, o registrar una venta.</p>
             <Button className="btn primary" onClick={newSale}>
               Nueva venta
             </Button>

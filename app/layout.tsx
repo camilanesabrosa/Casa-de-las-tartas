@@ -3,6 +3,7 @@ import "./globals.css";
 import "./desktop.css";
 import "./calendar.css";
 import "./updates.css";
+import "./daily-sales.css";
 import { appPath } from "@/lib/paths";
 import { APP_NAME } from "@/lib/branding";
 import { DesktopTitlebar } from "./desktop-titlebar";

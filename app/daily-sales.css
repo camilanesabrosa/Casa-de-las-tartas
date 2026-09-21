@@ -1,0 +1,70 @@
+/* Sidebar glance: today's amount, then sale count and the detail action.
+   Existing Figtree, violet/green-neutral palette, 4px spacing and 12px radius. */
+:root {
+  --sales-label-size: 14px;
+  --sales-amount-size: 24px;
+  --sales-detail-size: 12px;
+}
+.sidebar-sales {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: var(--space-2) var(--space-4) var(--space-6);
+  padding: var(--space-3);
+  text-align: left;
+  color: var(--foreground);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.sidebar-sales:hover { background: var(--brand-soft); }
+.sidebar-sales:active { background: var(--muted); }
+.sidebar-sales:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: var(--space-1);
+}
+.sidebar-sales-label {
+  font-size: var(--sales-label-size);
+  color: var(--muted-foreground);
+}
+.sidebar-sales-amount {
+  font-size: var(--sales-amount-size);
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.sidebar-sales-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--sales-detail-size);
+  color: var(--muted-foreground);
+}
+.sidebar-sales-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--space-8);
+  color: var(--brand-strong);
+}
+.sales-period-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.sales-period-row p { color: var(--muted-foreground); }
+.sales-period-row strong {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.sales-period-row .period-control { min-height: 44px; }
+/* Keep the shortcut and all navigation reachable in shorter desktop windows. */
+.app-sidebar [data-slot="sidebar-inner"] { overflow-y: auto; }
