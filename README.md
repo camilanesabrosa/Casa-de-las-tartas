@@ -14,10 +14,22 @@ listado aportado por Fernando; precios y movimientos son ejemplos.
 npm ci          # instalar dependencias
 npm run app     # construir y abrir la aplicación
 npm run app:dist  # generar el instalador en release/
+npm run app:dist:win  # generar el instalador Windows x64 (.exe) en release/
 ```
 
 Requiere Node 22.13 o posterior. `npm run dev` sigue abriendo la vista de
 desarrollo en el navegador, útil para iterar sobre la interfaz.
+
+### Instalador para Windows de 64 bits
+
+`npm run app:dist:win` genera
+`release/Casa-de-las-Tartas-0.1.0-win-x64-Setup.exe`. El asistente está en español
+y permite elegir la carpeta de instalación. Incluye Electron y SQLite: la PC
+de destino no necesita instalar Node ni un servidor de base de datos.
+
+El instalador todavía no tiene firma digital; Windows puede mostrar una
+advertencia de editor desconocido. La base se crea en el perfil del usuario,
+fuera de la carpeta de instalación; el paquete no incluye los datos de esta PC.
 
 La ventana usa una barra de título propia con los controles del sistema.
 El ícono editable está en `public/brand/icon.svg`; `npm run icons` regenera

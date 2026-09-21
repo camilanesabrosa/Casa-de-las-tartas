@@ -2,6 +2,7 @@
    Layout: [OS controls] [house + tart mark, centered name] [OS controls]. */
 :root {
   --titlebar-height: 48px;
+  --section-title-size: 28px;
 }
 .desktop-titlebar {
   position: fixed;
@@ -72,4 +73,46 @@ body:has(.desktop-titlebar) .skip-link:focus {
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.04em;
+}
+
+/* One compact section header below the native titlebar, without breadcrumbs. */
+.main-content {
+  padding-top: var(--space-6);
+}
+.page-heading {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.page-heading-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.page-heading h1 {
+  margin: 0;
+  font-size: var(--section-title-size);
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.page-heading > .button-group {
+  flex-wrap: wrap;
+}
+.page-heading .btn {
+  margin: 0;
+}
+@media (max-width: 767px) {
+  .page-heading {
+    align-items: stretch;
+  }
+  .page-heading > .button-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .page-heading .btn:first-child {
+    grid-column: 1 / -1;
+  }
 }

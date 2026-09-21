@@ -207,22 +207,7 @@ export default function BusinessApp() {
       </main>
     );
   const caja = openRegister(data);
-  const titles: Record<string, string> = {
-    overview: "Tu negocio, de un vistazo",
-    sales: "Tus ventas",
-    products: "Productos y stock",
-    expenses: "Los gastos y las compras del negocio",
-    settings: "Configuración",
-    calendar: "El saldo de cada día",
-  };
-  const subtitles: Record<string, string> = {
-    overview: "Todo lo que necesitás para llevar el día en orden.",
-    sales: "Cada venta, su cobro y los productos que salieron.",
-    products: "Lo que entra, lo que sale y lo que queda.",
-    expenses: "Tené a mano lo que pagaste y lo que queda pendiente.",
-    settings: "Los datos y las preferencias de tu negocio.",
-    calendar: "Consultá tus ingresos, egresos y cierres de caja por semana o por mes.",
-  };
+  const title = navigation.find((item) => item.id === view)?.label || "Configuración";
   return (
     <SidebarProvider
       style={{ "--sidebar-width": "232px" } as React.CSSProperties}
@@ -260,32 +245,14 @@ export default function BusinessApp() {
         </SidebarFooter>
       </Sidebar>
       <div className="workspace">
-        <header className="topbar">
-          <div>
-            <SidebarTrigger
-              aria-label="Abrir menú"
-              className="mobile-trigger"
-            />
-            <span>Mi negocio</span>
-            <span className="slash">/</span>
-            <strong>
-              {navigation.find((n) => n.id === view)?.label || "Configuración"}
-            </strong>
-          </div>
-        </header>
         <main id="main" className="main-content">
-          <div className="page-heading">
-            <div>
-              <p className="date-label">
-                {new Intl.DateTimeFormat("es-AR", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  timeZone: "America/Argentina/Mendoza",
-                }).format(new Date())}
-              </p>
-              <h1>{titles[view]}</h1>
-              <p>{subtitles[view]}</p>
+          <header className="page-heading">
+            <div className="page-heading-title">
+              <SidebarTrigger
+                aria-label="Abrir menú"
+                className="mobile-trigger"
+              />
+              <h1>{title}</h1>
             </div>
             <div className="button-group">
               <Button className="btn primary" onClick={() => setSaleOpen(true)}>
@@ -313,7 +280,7 @@ export default function BusinessApp() {
                 Nueva compra
               </Button>
             </div>
-          </div>
+          </header>
           {error && (
             <div className="error-banner" role="alert">
               <p>{error}</p>
