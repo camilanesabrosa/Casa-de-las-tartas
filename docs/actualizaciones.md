@@ -40,10 +40,13 @@ La app consulta `https://sinnick.dev/cdt/update/latest.yml`.
 }
 ```
 
-Antes de usarlo hay que habilitar esa ruta en el servidor y publicar los archivos
-de una versión. Esta tarea solo configura el cliente: no modifica el VPS ni sube
-archivos. El directorio debe ser público por HTTPS y exclusivo de esta app. No
-incluir tokens o claves privadas en el instalador.
+La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.2.0.
+La página de descarga es [sinnick.dev/cdt/](https://sinnick.dev/cdt/). Los archivos
+viven en `/var/www/cdt-download/`, separados del sitio principal y de Wiener.
+La configuración y el respaldo de Nginx están documentados en
+[Publicación de descargas](../deployment/download/README.md).
+El directorio es público por HTTPS y exclusivo de esta app. No incluir tokens
+o claves privadas en el instalador.
 
 ## Publicar una versión
 

@@ -40,14 +40,15 @@ para mantener las bases existentes.
 
 El actualizador para Windows x64 avisa cuando hay una nueva versión y permite
 descargarla e instalarla con confirmación. Las preferencias se guardan en SQLite.
-El canal configurado es `https://sinnick.dev/cdt/update/`; falta publicar allí
-los archivos de la próxima versión. El flujo y los pasos de publicación están
-en [Actualizaciones](docs/actualizaciones.md).
+La versión 0.2.0 está publicada en [Descargar Casa de las Tartas](https://sinnick.dev/cdt/).
+El canal de actualización es `https://sinnick.dev/cdt/update/`. El flujo y los
+pasos de publicación están en [Actualizaciones](docs/actualizaciones.md).
 
 Después de generar el instalador, `npm run release:prepare` verifica su hash y
 prepara `release/cdt/` con un `index.html` mínimo y la carpeta `update/`.
 Subir el contenido de esa carpeta a `/cdt/` del sitio, conservando los nombres.
-El botón descarga el mismo `.exe` que usa el actualizador.
+El botón descarga el mismo `.exe` que usa el actualizador. La configuración del
+VPS está documentada en [Publicación de descargas](deployment/download/README.md).
 
 En Calendario podés alternar entre semana y mes, consultar el saldo de cada día
 y ver su desglose de ventas, aportes, pagos y retiros. El saldo diario expresa
@@ -121,4 +122,5 @@ foto desde el formulario de edición; esa foto tiene prioridad.
 - `tests/api-check.mjs`: pruebas del contrato HTTP contra el servidor construido.
 
 La carpeta `deployment/` conserva la publicación anterior en el VPS, que servía
-además un catálogo público. Ya no corresponde a esta versión.
+además un catálogo público. `deployment/download/` contiene la página y la
+configuración de Nginx para distribuir la aplicación de escritorio.
