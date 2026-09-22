@@ -45,7 +45,7 @@ de una versión. Esta tarea solo configura el cliente: no modifica el VPS ni sub
 archivos. El directorio debe ser público por HTTPS y exclusivo de esta app. No
 incluir tokens o claves privadas en el instalador.
 
-## Publicar una versión (cuando se retome el armado del instalador)
+## Publicar una versión
 
 1. Elegir una versión estable superior a la instalada, en formato `X.Y.Z`.
    Actualizar `package.json` y `package-lock.json` juntos, por ejemplo con
@@ -58,16 +58,36 @@ incluir tokens o claves privadas en el instalador.
    - `Casa-de-las-Tartas-X.Y.Z-win-x64-Setup.exe`
    - su archivo `.blockmap`
    - `latest.yml`, con versión, nombre y hash SHA-512 del instalador
-4. Subir primero el `.exe` y el `.blockmap` al canal; verificar que se puedan
+4. Ejecutar `npm run release:prepare` para verificar el tamaño y SHA-512 y generar
+   `release/cdt/index.html` y `release/cdt/update/`. La página usa HTML y CSS,
+   sin JavaScript, fuentes externas ni servidor de aplicación.
+5. Subir primero el `.exe` y el `.blockmap` al canal; verificar que se puedan
    descargar completos. Publicar `latest.yml` **al final**, de forma atómica.
    No cachear el manifiesto a largo plazo; los archivos versionados sí pueden
    tener caché. No modificar un instalador después de generar su manifiesto.
-5. Probar en una PC o VM Windows x64: versión anterior → buscar → descargar →
+6. Probar en una PC o VM Windows x64: versión anterior → buscar → descargar →
    cancelar instalación → instalar y reiniciar. Verificar la nueva versión,
    los registros anteriores y las preferencias. Probar también sin internet.
 
 El script de empaquetado tiene `--publish never`: genera los archivos pero **no
-los sube**. Esta tarea tampoco creó ni subió un instalador nuevo.
+los sube**. La publicación en el servidor es manual.
+
+La estructura que debe quedar en el servidor es:
+
+```text
+/cdt/
+  index.html
+  update/
+    Casa-de-las-Tartas-X.Y.Z-win-x64-Setup.exe
+    Casa-de-las-Tartas-X.Y.Z-win-x64-Setup.exe.blockmap
+    latest.yml
+```
+
+Configurar `/cdt` para redirigir a `/cdt/` y servir `index.html` como índice.
+La página enlaza al instalador por una ruta relativa dentro de esa carpeta.
+En publicaciones posteriores, conservar los instaladores y blockmaps anteriores
+para que las descargas diferenciales sigan disponibles. Subir también el HTML
+actualizado, con el número de versión y el enlace correspondientes.
 
 Las instalaciones viejas sin este código necesitan una primera actualización
 manual. A partir de esa instalación, las siguientes versiones pueden llegar

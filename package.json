@@ -20,6 +20,7 @@
     "app": "npm run build:app && electron .",
     "app:dist": "npm run build:app && electron-builder",
     "app:dist:win": "npm run icons && npm run build:app && electron-builder --win nsis --x64 --publish never",
+    "release:prepare": "node scripts/prepare-download.mjs",
     "icons": "node scripts/build-icons.mjs"
   },
   "dependencies": {

@@ -18,7 +18,7 @@ try {
     format: "esm",
     banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' },
   });
-  const result = spawnSync(process.execPath, ["--test", outfile, resolve("tests/updater.test.mjs")], {
+  const result = spawnSync(process.execPath, ["--test", outfile, resolve("tests/updater.test.mjs"), resolve("tests/download.test.mjs")], {
     stdio: "inherit",
   });
   process.exitCode = result.status ?? 1;
