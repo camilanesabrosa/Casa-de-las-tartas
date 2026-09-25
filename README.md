@@ -87,14 +87,14 @@ impreso. El buscador acepta el código además del nombre.
 
 ## Límites de esta versión
 
-Es una demostración para validar el alcance, no una entrega lista para manejar
-dinero real. La puesta en marcha necesita los datos reales de la clienta, copias
-automáticas y recuperación comprobada.
+Es una aplicación local para el negocio; antes de depender de los respaldos en
+nube hay que configurar el OAuth Client ID y pasar por el flujo de consentimiento
+de Google descrito en `docs/respaldo-google-drive.md`.
 
 Guarda productos, ventas, compras, gastos y movimientos en tablas SQLite locales.
-La interfaz conserva el límite de 500 variedades. Los respaldos
-JSON se descargan, pero su recuperación todavía requiere asistencia técnica. No
-hay facturación fiscal, pagos online, fiado, recetas, lotes, vencimientos ni
+La interfaz conserva el límite de 500 variedades. Los respaldos JSON se
+descargan, pero su recuperación todavía requiere asistencia técnica. No hay
+facturación fiscal, pagos online, fiado, recetas, lotes, vencimientos ni
 integración con balanzas. El saldo suma todos los medios de pago, sin
 conciliación bancaria ni cierre de efectivo por caja.
 

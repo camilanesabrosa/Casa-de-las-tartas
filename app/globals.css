@@ -1095,6 +1095,99 @@ td small {
 .maintenance-panel {
   border-color: #e8c3be;
 }
+.drive-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.drive-heading,
+.drive-restore-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.drive-heading > div {
+  min-width: 0;
+}
+.drive-heading > div > .muted {
+  margin: 8px 0 0;
+}
+.drive-heading-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--brand-strong);
+  flex: 0 0 auto;
+}
+.drive-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.drive-status svg {
+  width: 18px;
+  height: 18px;
+  color: var(--success);
+}
+.drive-retention,
+.drive-setup-note,
+.drive-error {
+  margin: 0;
+  font-size: 14px;
+}
+.settings-panel > .drive-status,
+.settings-panel > .drive-retention,
+.settings-panel > .drive-setup-note,
+.settings-panel > .drive-error {
+  margin: 0;
+}
+.drive-retention,
+.drive-setup-note {
+  color: var(--muted-foreground);
+}
+.drive-setup-note {
+  padding: 12px;
+  background: var(--secondary);
+  border-radius: var(--radius-md);
+}
+.drive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.drive-actions > .btn {
+  margin: 0;
+  width: auto;
+}
+.drive-disconnect {
+  margin-left: auto !important;
+}
+.drive-error {
+  color: var(--red);
+}
+.drive-restore {
+  display: grid;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.drive-restore-heading {
+  align-items: center;
+}
+.drive-restore-heading h3 {
+  font-size: 18px;
+}
+.drive-restore > p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.drive-restore > .btn {
+  width: 100%;
+}
 .maintenance-panel > .btn {
   margin-top: 8px;
 }

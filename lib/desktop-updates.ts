@@ -25,9 +25,3 @@ export interface DesktopUpdatesAPI {
   setAutomatic(enabled: boolean): Promise<DesktopUpdateState>;
   onStateChange(callback: (state: DesktopUpdateState) => void): () => void;
 }
-
-declare global {
-  interface Window {
-    casaDesktop?: { readonly platform: string; readonly updates: DesktopUpdatesAPI };
-  }
-}

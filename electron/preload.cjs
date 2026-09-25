@@ -19,5 +19,20 @@ contextBridge.exposeInMainWorld(
         return () => ipcRenderer.removeListener("casa:updates:changed", listener);
       },
     }),
+    drive: Object.freeze({
+      getState: () => ipcRenderer.invoke("casa:drive:state"),
+      connect: () => ipcRenderer.invoke("casa:drive:action", "connect"),
+      backupNow: () => ipcRenderer.invoke("casa:drive:action", "backup"),
+      listBackups: () => ipcRenderer.invoke("casa:drive:action", "list"),
+      restoreBackup: (id) => ipcRenderer.invoke("casa:drive:action", "restore", id),
+      disconnect: () => ipcRenderer.invoke("casa:drive:action", "disconnect"),
+      markReady: () => ipcRenderer.send("casa:drive:ready"),
+      dataChanged: () => ipcRenderer.send("casa:drive:data-changed"),
+      onStateChange: (callback) => {
+        const listener = (_event, state) => callback(state);
+        ipcRenderer.on("casa:drive:changed", listener);
+        return () => ipcRenderer.removeListener("casa:drive:changed", listener);
+      },
+    }),
   }),
 );

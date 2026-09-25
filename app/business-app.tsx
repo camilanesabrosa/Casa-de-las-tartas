@@ -3,6 +3,7 @@ import { appPath } from "@/lib/paths";
 import { APP_NAME } from "@/lib/branding";
 import { CalendarView } from "./calendar-view";
 import { UpdateBanner, useDesktopUpdates } from "./updates";
+import { useDesktopDrive } from "./drive-backups";
 import { DailySalesShortcut } from "./daily-sales";
 import { useBusinessDay } from "@/hooks/use-business-day";
 import { allSalesFilters, todaySalesFilters, type SalesFilters } from "@/lib/sales";
@@ -73,6 +74,7 @@ async function fetchBusiness(signal?: AbortSignal): Promise<Business> {
 }
 export default function BusinessApp() {
   const updates = useDesktopUpdates();
+  const drive = useDesktopDrive();
   const today = useBusinessDay();
   const [data, setData] = useState<Business | null>(null);
   const [view, setView] = useState("overview");
@@ -100,7 +102,11 @@ export default function BusinessApp() {
     const controller = new AbortController();
     void fetchBusiness(controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) { setData(result); setError(""); }
+        if (!controller.signal.aborted) {
+          setData(result);
+          setError("");
+          window.casaDesktop?.drive?.markReady();
+        }
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "No pudimos cargar los datos.");
@@ -136,6 +142,7 @@ export default function BusinessApp() {
     pending.current = null;
     setError("");
     setToast("Cambios guardados");
+    window.casaDesktop?.drive?.dataChanged();
   };
   useEffect(() => {
     const ctx = (
@@ -339,6 +346,7 @@ export default function BusinessApp() {
           ) : (
             <SettingsView
               updates={updates}
+              drive={drive}
               data={data}
               save={save}
               back={() => setView("overview")}

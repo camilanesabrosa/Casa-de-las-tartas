@@ -1,5 +1,6 @@
 "use client";
 import { UpdateSettings, type useDesktopUpdates } from "./updates";
+import { DriveBackupSettings, type DriveControls } from "./drive-backups";
 import {
   Table,
   TableHeader,
@@ -589,11 +590,13 @@ export function SettingsView({
   save,
   back,
   updates,
+  drive,
 }: {
   data: Business;
   save: Save;
   back: () => void;
   updates: ReturnType<typeof useDesktopUpdates>;
+  drive: DriveControls;
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
@@ -684,7 +687,7 @@ export function SettingsView({
           <div className="reset-confirmation" role="group" aria-labelledby="reset-title">
             <h3 id="reset-title">Se borrará el historial del negocio</h3>
             <p>
-              Se eliminarán {data.sales.length} ventas, {data.purchases.length} compras, {data.expenses.length} gastos, {data.suppliers.length} proveedores y los registros de caja. Se conservarán {data.products.length} productos con stock en cero.
+              Se eliminarán {data.sales.length} ventas, {data.purchases.length} compras, {data.expenses.length} gastos, {data.suppliers.length} proveedores y los historiales de pagos, stock y caja. Se conservarán {data.products.length} productos con stock en cero.
             </p>
             <label className="reset-confirmation-label" htmlFor="reset-confirmation-input">
               Escribí REINICIAR para habilitar el borrado.
@@ -713,6 +716,7 @@ export function SettingsView({
           </div>
         )}
       </section>
+      <DriveBackupSettings drive={drive} />
       <UpdateSettings updates={updates} />
     </div>
   );

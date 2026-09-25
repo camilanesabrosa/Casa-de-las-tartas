@@ -9,14 +9,21 @@ const {
   Menu,
   nativeImage,
   ipcMain,
+  safeStorage,
 } = require("electron");
 const { fork } = require("node:child_process");
+const crypto = require("node:crypto");
+const { DatabaseSync } = require("node:sqlite");
 const { createServer } = require("node:net");
 const { join } = require("node:path");
 const { mkdirSync, existsSync } = require("node:fs");
+const { rename, rm } = require("node:fs/promises");
 const { UpdateController, unavailableReason } = require("./updater.cjs");
 const { openUpdatePreferences } = require("./update-preferences.cjs");
 const { registerUpdateIpc, CHANGED_CHANNEL, trustedSender } = require("./update-ipc.cjs");
+const { DriveBackupController } = require("./drive-backups.cjs");
+const { registerDriveIpc } = require("./drive-ipc.cjs");
+const { clientId: driveClientId } = require("./drive-config.cjs");
 
 const SERVER = join(__dirname, "..", "dist", "standalone", "server.js");
 const HOST = "127.0.0.1";
@@ -37,6 +44,9 @@ let window;
 let updates;
 let updatePreferences;
 let removeUpdateIpc;
+let driveBackups;
+let removeDriveIpc;
+let restoring = false;
 
 // The installer must never compete with another running copy of this app.
 const primaryInstance = app.requestSingleInstanceLock();
@@ -87,6 +97,117 @@ function setupUpdates(url) {
   updates.start();
 }
 
+function setupDriveBackups(url) {
+  const origin = new URL(url).origin;
+  driveBackups ||= new DriveBackupController({
+    clientId: driveClientId,
+    databasePath: join(dataDirectory, "business.sqlite"),
+    statePath: join(dataDirectory, "google-drive.json"),
+    safeStorage,
+    shell,
+    notify: (state) => {
+      if (window && !window.isDestroyed() && trustedSender({ sender: window.webContents,
+        senderFrame: window.webContents.mainFrame }, window, origin))
+        window.webContents.send("casa:drive:changed", state);
+    },
+  });
+  void driveBackups.start().catch((error) => console.error("No se pudieron iniciar los respaldos de Drive:", error));
+  removeDriveIpc = registerDriveIpc({
+    ipcMain,
+    window,
+    origin,
+    controller: driveBackups,
+    restoreBackup: restoreDriveBackup,
+  });
+}
+
+async function stopServerForRestore() {
+  const currentServer = server;
+  server = undefined;
+  if (!currentServer || currentServer.exitCode !== null) return;
+  await new Promise((resolve) => {
+    const forceKill = setTimeout(() => {
+      currentServer.kill("SIGKILL");
+    }, 10_000);
+    currentServer.once("exit", () => {
+      clearTimeout(forceKill);
+      resolve();
+    });
+    currentServer.kill("SIGTERM");
+  });
+}
+
+async function restoreDriveBackup(fileId) {
+  if (restoring) throw new Error("Ya hay una restauración en curso.");
+  restoring = true;
+  app.isRestoring = true;
+  const databasePath = join(dataDirectory, "business.sqlite");
+  const incomingPath = join(dataDirectory, `.restore-${crypto.randomUUID()}.sqlite`);
+  let archivedPath = "";
+  let serverStopped = false;
+  try {
+    const backupInfo = await driveBackups.downloadBackup(fileId, incomingPath);
+    updates?.stop();
+    updatePreferences?.close();
+    updatePreferences = undefined;
+    await stopServerForRestore();
+    serverStopped = true;
+    const current = new DatabaseSync(databasePath);
+    try { current.exec("PRAGMA wal_checkpoint(TRUNCATE)"); }
+    finally { current.close(); }
+    await rm(`${databasePath}-wal`, { force: true });
+    await rm(`${databasePath}-shm`, { force: true });
+
+    archivedPath = `${databasePath}.pre-restore-${new Date().toISOString().replaceAll(":", "-")}-${crypto.randomUUID().slice(0, 8)}.sqlite`;
+    await rename(databasePath, archivedPath);
+    try {
+      await rename(incomingPath, databasePath);
+      const restored = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        const integrity = restored.prepare("PRAGMA integrity_check").get();
+        if (integrity.integrity_check !== "ok") throw new Error("La base restaurada no pasó la comprobación de integridad.");
+      } finally { restored.close(); }
+    } catch (error) {
+      await rm(databasePath, { force: true }).catch(() => {});
+      await rename(archivedPath, databasePath);
+      archivedPath = "";
+      throw error;
+    }
+    await dialog.showMessageBox(window, {
+      type: "info",
+      title: "Respaldo restaurado",
+      message: "Se restauró el negocio desde Google Drive.",
+      detail: "Casa de las Tartas se cerrará. Abrila de nuevo para continuar.",
+      buttons: ["Aceptar"],
+      noLink: true,
+    });
+    app.relaunch();
+    app.quit();
+    return { restored: true, name: backupInfo.name };
+  } catch (error) {
+    if (serverStopped) {
+      try {
+        app.isRestoring = false;
+        const url = await start();
+        removeUpdateIpc?.();
+        updates?.stop();
+        setupUpdates(url);
+        removeDriveIpc?.();
+        setupDriveBackups(url);
+        await window.loadURL(url);
+      } catch (startError) {
+        console.error("No se pudo volver a abrir la base anterior:", startError);
+        app.quit();
+      }
+    }
+    throw error;
+  } finally {
+    restoring = false;
+    if (!app.isQuitting) app.isRestoring = false;
+    await rm(incomingPath, { force: true }).catch(() => {});
+  }
+}
+
 // Puerto libre elegido por el sistema: la app no compite con nada del equipo.
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -135,7 +256,7 @@ async function start() {
   });
   server.on("exit", (code) => {
     // Si el servidor muere con la app abierta, no queda una ventana en blanco.
-    if (!app.isQuitting && code !== 0) {
+    if (!app.isQuitting && !app.isRestoring && code !== 0) {
       dialog.showErrorBox(
         APP_NAME,
         "El servidor interno se cerró inesperadamente. Volvé a abrir la aplicación.",
@@ -185,6 +306,7 @@ function createWindow(url) {
     if (new URL(target).origin !== new URL(url).origin) event.preventDefault();
   });
   setupUpdates(url);
+  setupDriveBackups(url);
   void window.loadURL(url);
 }
 
@@ -263,8 +385,10 @@ if (primaryInstance) app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   app.isQuitting = true;
+  driveBackups?.stop();
   updates?.stop();
   removeUpdateIpc?.();
+  removeDriveIpc?.();
   updatePreferences?.close();
   updatePreferences = undefined;
   if (server && server.exitCode === null) server.kill();
