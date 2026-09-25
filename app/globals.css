@@ -1092,6 +1092,41 @@ td small {
   margin-bottom: 16px;
   width: 100%;
 }
+.maintenance-panel {
+  border-color: #e8c3be;
+}
+.maintenance-panel > .btn {
+  margin-top: 8px;
+}
+.reset-confirmation {
+  display: grid;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.reset-confirmation h3 {
+  font-size: 18px;
+  line-height: 1.2;
+}
+.reset-confirmation p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.reset-confirmation-label {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.reset-confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.reset-error {
+  color: var(--red) !important;
+}
 .hint-box {
   padding: 16px;
   background: var(--background);

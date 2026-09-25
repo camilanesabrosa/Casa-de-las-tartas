@@ -21,6 +21,7 @@ import {
   Phone,
   ArrowRight,
   CalendarDays,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -594,6 +595,26 @@ export function SettingsView({
   back: () => void;
   updates: ReturnType<typeof useDesktopUpdates>;
 }) {
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+
+  async function resetBusiness() {
+    if (confirmationText !== "REINICIAR" || resetting) return;
+    setResetting(true);
+    setResetError("");
+    try {
+      await save({ type: "resetBusiness" });
+      setConfirmReset(false);
+      setConfirmationText("");
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : "No se pudieron reiniciar los datos.");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div className="settings-grid">
       <section className="panel settings-panel">
@@ -646,10 +667,51 @@ export function SettingsView({
           Exportar productos a CSV
         </Button>
         <div className="hint-box">
-          Esta es una muestra privada. Los nombres se cargaron desde tu listado;
-          las unidades de venta, los precios y los movimientos deben revisarse
-          antes de usarla en el local.
+          El catálogo parte del listado cargado. Revisá precios, costos y unidades antes de registrar la primera venta.
         </div>
+      </section>
+      <section className="panel settings-panel maintenance-panel">
+        <h2>Empezar desde cero</h2>
+        <p className="muted">
+          Conserva el catálogo, los precios y la configuración del negocio. El stock vuelve a cero y se borran las ventas, compras, gastos, proveedores y movimientos de caja.
+        </p>
+        {!confirmReset ? (
+          <Button className="btn danger" onClick={() => setConfirmReset(true)}>
+            <Trash2 aria-hidden="true" />
+            Borrar actividad y conservar productos
+          </Button>
+        ) : (
+          <div className="reset-confirmation" role="group" aria-labelledby="reset-title">
+            <h3 id="reset-title">Se borrará el historial del negocio</h3>
+            <p>
+              Se eliminarán {data.sales.length} ventas, {data.purchases.length} compras, {data.expenses.length} gastos, {data.suppliers.length} proveedores y los registros de caja. Se conservarán {data.products.length} productos con stock en cero.
+            </p>
+            <label className="reset-confirmation-label" htmlFor="reset-confirmation-input">
+              Escribí REINICIAR para habilitar el borrado.
+            </label>
+            <input
+              id="reset-confirmation-input"
+              className="field-input"
+              autoComplete="off"
+              autoFocus
+              value={confirmationText}
+              onChange={(event) => setConfirmationText(event.target.value)}
+            />
+            {resetError ? <p className="reset-error" role="alert">{resetError}</p> : null}
+            <div className="reset-confirmation-actions">
+              <Button className="btn" disabled={resetting} onClick={() => {
+                setConfirmReset(false);
+                setConfirmationText("");
+                setResetError("");
+              }}>
+                Cancelar
+              </Button>
+              <Button className="btn danger" disabled={resetting || confirmationText !== "REINICIAR"} onClick={() => void resetBusiness()}>
+                {resetting ? "Borrando…" : "Borrar y empezar de cero"}
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
       <UpdateSettings updates={updates} />
     </div>

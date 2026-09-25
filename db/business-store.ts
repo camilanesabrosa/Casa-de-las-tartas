@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { createDemo, withProductNumbers, withRegisters, type Business } from "@/lib/business";
+import { createFreshBusiness, withProductNumbers, withRegisters, type Business } from "@/lib/business";
 import { applyAction } from "@/lib/actions";
 
 type Stored = Business & { completedRequests?: string[] };
@@ -55,5 +55,5 @@ function replaceStatements(ownerId: string, b: Stored): Statement[] {
   return out;
 }
 async function save(ownerId: string, b: Stored) { await db().batch(replaceStatements(ownerId, b)); }
-export async function readBusiness(ownerId: string): Promise<Stored> { await ensureSchema(); let stored = await load(ownerId); if (!stored) { const legacy = await first<{ payload: string }>("SELECT payload FROM businesses WHERE owner_id = ?", ownerId); stored = legacy ? JSON.parse(legacy.payload) as Stored : createDemo(); stored = withRegisters(withProductNumbers(stored)); await save(ownerId, stored); } return withRegisters(withProductNumbers(stored)); }
-export async function updateBusiness(ownerId: string, version: number, requestId: string, action: unknown) { const previous = await readBusiness(ownerId); if (previous.completedRequests?.includes(requestId)) return previous; if (previous.version !== version) throw new Error("Los datos cambiaron en otra ventana. Actualizá los datos y volvé a guardar."); const next: Stored = applyAction(previous, action); next.completedRequests = [...(previous.completedRequests || []), requestId].slice(-500); await save(ownerId, next); return next; }
+export async function readBusiness(ownerId: string): Promise<Stored> { await ensureSchema(); let stored = await load(ownerId); if (!stored) { const legacy = await first<{ payload: string }>("SELECT payload FROM businesses WHERE owner_id = ?", ownerId); stored = legacy ? JSON.parse(legacy.payload) as Stored : createFreshBusiness(); stored = withRegisters(withProductNumbers(stored)); await save(ownerId, stored); } return withRegisters(withProductNumbers(stored)); }
+export async function updateBusiness(ownerId: string, version: number, requestId: string, action: unknown) { const previous = await readBusiness(ownerId); if (previous.completedRequests?.includes(requestId)) return previous; if (previous.version !== version) throw new Error("Los datos cambiaron en otra ventana. Actualizá los datos y volvé a guardar."); const next: Stored = applyAction(previous, action); const reset = typeof action === "object" && action !== null && "type" in action && action.type === "resetBusiness"; next.completedRequests = reset ? [requestId] : [...(previous.completedRequests || []), requestId].slice(-500); await save(ownerId, next); return next; }

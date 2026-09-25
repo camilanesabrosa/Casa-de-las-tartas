@@ -676,6 +676,21 @@ export function createDemo(now = new Date()): Business {
     movements,
   };
 }
+
+export function createFreshBusiness(now = new Date()): Business {
+  const business = createDemo(now);
+  return {
+    ...business,
+    products: business.products.map((product) => ({ ...product, stock: 0 })),
+    suppliers: [],
+    sales: [],
+    purchases: [],
+    expenses: [],
+    movements: [],
+    payments: [],
+    registers: [],
+  };
+}
 export function summary(b: Business, days = 7) {
   const today = dateKey();
   const start = new Date(`${today}T12:00:00-03:00`);

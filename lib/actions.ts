@@ -34,6 +34,7 @@ const productSchema = z.object({
   }, "Usá un enlace de imagen que empiece con https://.").optional(),
 });
 export const actionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("resetBusiness") }),
   z.object({ type: z.literal("product"), product: productSchema }),
   z.object({
     type: z.literal("sale"),
@@ -150,6 +151,16 @@ export function applyAction(
       b.payments.push({ id: id("P"), date: now, amount, kind, reference });
   };
   switch (a.type) {
+    case "resetBusiness":
+      b.products = b.products.map((product) => ({ ...product, stock: 0 }));
+      b.suppliers = [];
+      b.sales = [];
+      b.purchases = [];
+      b.expenses = [];
+      b.movements = [];
+      b.payments = [];
+      b.registers = [];
+      break;
     case "product": {
       if (b.products.length >= 500 && !a.product.id)
         throw new Error(
