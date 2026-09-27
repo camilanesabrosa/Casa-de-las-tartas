@@ -59,6 +59,9 @@ el HTML. Las descargas admiten rangos HTTP para el actualizador.
 La primera publicación se preparó completa en un directorio privado, se
 verificaron los cuatro archivos y luego se habilitó la ruta pública.
 
+La versión actual es 0.2.1, publicada el 27 de septiembre de 2026. Se
+conservaron el instalador y el blockmap 0.2.0 para las instalaciones existentes.
+
 ## Verificación de 0.2.0
 
 Se comprobó la redirección, el botón de descarga, el manifiesto y el blockmap.
