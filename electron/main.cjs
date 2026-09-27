@@ -23,7 +23,7 @@ const { openUpdatePreferences } = require("./update-preferences.cjs");
 const { registerUpdateIpc, CHANGED_CHANNEL, trustedSender } = require("./update-ipc.cjs");
 const { DriveBackupController } = require("./drive-backups.cjs");
 const { registerDriveIpc } = require("./drive-ipc.cjs");
-const { clientId: driveClientId } = require("./drive-config.cjs");
+const { clientId: driveClientId, clientSecret: driveClientSecret } = require("./drive-config.cjs");
 
 const SERVER = join(__dirname, "..", "dist", "standalone", "server.js");
 const HOST = "127.0.0.1";
@@ -106,6 +106,7 @@ function setupDriveBackups(url) {
   const origin = new URL(url).origin;
   driveBackups ||= new DriveBackupController({
     clientId: driveClientId,
+    clientSecret: driveClientSecret,
     databasePath: join(dataDirectory, "business.sqlite"),
     statePath: join(dataDirectory, "google-drive.json"),
     safeStorage,

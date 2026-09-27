@@ -23,8 +23,9 @@ function describeError(error) {
 }
 
 class DriveBackupController {
-  constructor({ clientId, databasePath, statePath, safeStorage, shell, notify }) {
+  constructor({ clientId, clientSecret = "", databasePath, statePath, safeStorage, shell, notify }) {
     this.clientId = clientId;
+    this.clientSecret = clientSecret;
     this.databasePath = databasePath;
     this.statePath = statePath;
     this.safeStorage = safeStorage;
@@ -89,7 +90,7 @@ class DriveBackupController {
   async writeEncryptedToken(refreshToken) {
     if (!this.safeStorage.isEncryptionAvailable())
       throw new Error("Windows no tiene disponible el cifrado seguro para guardar el acceso a Google.");
-    const encrypted = await this.safeStorage.encryptStringAsync(refreshToken);
+    const encrypted = this.safeStorage.encryptString(refreshToken);
     this.config.encryptedRefreshToken = encrypted.toString("base64");
     await this.persist();
   }
@@ -98,12 +99,7 @@ class DriveBackupController {
     if (!this.config.encryptedRefreshToken) return "";
     if (!this.safeStorage.isEncryptionAvailable())
       throw new Error("Windows no puede descifrar el acceso guardado. Volvé a conectar Google Drive.");
-    const decrypted = await this.safeStorage.decryptStringAsync(Buffer.from(this.config.encryptedRefreshToken, "base64"));
-    if (typeof decrypted === "string") return decrypted;
-    if (!decrypted || typeof decrypted.decryptedData !== "string")
-      throw new Error("Windows no pudo recuperar el acceso a Google. Volvé a conectar Drive.");
-    if (decrypted.shouldReEncrypt) await this.writeEncryptedToken(decrypted.decryptedData);
-    return decrypted.decryptedData;
+    return this.safeStorage.decryptString(Buffer.from(this.config.encryptedRefreshToken, "base64"));
   }
 
   async authorize() {
@@ -164,6 +160,7 @@ class DriveBackupController {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           client_id: this.clientId,
+          ...(this.clientSecret ? { client_secret: this.clientSecret } : {}),
           code,
           code_verifier: verifier,
           grant_type: "authorization_code",
@@ -203,7 +200,12 @@ class DriveBackupController {
     const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ client_id: this.clientId, refresh_token: refreshToken, grant_type: "refresh_token" }),
+      body: new URLSearchParams({
+        client_id: this.clientId,
+        ...(this.clientSecret ? { client_secret: this.clientSecret } : {}),
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
       signal: AbortSignal.timeout(30_000),
     });
     const tokens = await response.json();
