@@ -17,6 +17,10 @@ function registerDriveIpc({ ipcMain, window, origin, controller, restoreBackup }
       case "connect":
         await controller.authorize();
         controller.emit();
+        {
+          const state = await controller.getState();
+          if (state.restoreDecisionRequired) return state;
+        }
         return controller.backupNow("automatic");
       case "backup": return controller.backupNow("manual");
       case "list": return controller.listBackups();

@@ -4,6 +4,7 @@ export interface DesktopDriveState {
   busy: "backup" | null;
   lastBackupAt: string | null;
   lastError: string;
+  restoreDecisionRequired: boolean;
 }
 
 export interface DesktopDriveBackup {

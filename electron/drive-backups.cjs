@@ -31,7 +31,14 @@ class DriveBackupController {
     this.safeStorage = safeStorage;
     this.shell = shell;
     this.notify = notify;
-    this.config = { version: 1, encryptedRefreshToken: "", folderId: "", lastBackupAt: null, lastError: "" };
+    this.config = {
+      version: 1,
+      encryptedRefreshToken: "",
+      folderId: "",
+      lastBackupAt: null,
+      lastError: "",
+      restoreDecisionRequired: false,
+    };
     this.accessToken = "";
     this.accessTokenExpiresAt = 0;
     this.busy = null;
@@ -53,6 +60,7 @@ class DriveBackupController {
           folderId: typeof stored.folderId === "string" ? stored.folderId : "",
           lastBackupAt: typeof stored.lastBackupAt === "string" ? stored.lastBackupAt : null,
           lastError: typeof stored.lastError === "string" ? stored.lastError.slice(0, 280) : "",
+          restoreDecisionRequired: stored.restoreDecisionRequired === true,
         };
       }
     } catch (error) {
@@ -75,6 +83,7 @@ class DriveBackupController {
       busy: this.busy,
       lastBackupAt: this.config.lastBackupAt,
       lastError: this.config.lastError,
+      restoreDecisionRequired: this.config.restoreDecisionRequired,
     };
   }
 
@@ -187,6 +196,9 @@ class DriveBackupController {
         throw new Error("Google no entregó un acceso persistente. Desconectá la app en tu cuenta de Google y volvé a conectar.");
       this.accessToken = tokens.access_token;
       this.accessTokenExpiresAt = Date.now() + Math.max(0, tokens.expires_in - 60) * 1000;
+      const backups = await this.listFiles(this.accessToken);
+      this.config.restoreDecisionRequired = backups.length > 0;
+      await this.persist();
     } finally {
       server.close();
     }
@@ -363,12 +375,13 @@ class DriveBackupController {
   async markReady() {
     await this.start();
     this.ready = true;
-    if (this.config.encryptedRefreshToken) void this.backupNow("automatic").catch(() => {});
+    if (this.config.encryptedRefreshToken && !this.config.restoreDecisionRequired)
+      void this.backupNow("automatic").catch(() => {});
     return this.getState();
   }
 
   notifyDataChanged() {
-    if (!this.ready || !this.config.encryptedRefreshToken) return;
+    if (!this.ready || !this.config.encryptedRefreshToken || this.config.restoreDecisionRequired) return;
     clearTimeout(this.pendingSave);
     this.pendingSave = setTimeout(() => {
       this.pendingSave = null;
@@ -419,11 +432,18 @@ class DriveBackupController {
     this.retryTimer = null;
     this.config.encryptedRefreshToken = "";
     this.config.folderId = "";
+    this.config.restoreDecisionRequired = false;
     this.accessToken = "";
     this.accessTokenExpiresAt = 0;
     await this.persist();
     this.emit();
     return this.getState();
+  }
+
+  async resolveRestoreDecision() {
+    this.config.restoreDecisionRequired = false;
+    await this.persist();
+    this.emit();
   }
 
   stop() {

@@ -106,7 +106,7 @@ export function DriveBackupSettings({ drive }: { drive: DriveControls }) {
       <div className="drive-heading">
         <div>
           <h2>Respaldo en Google Drive</h2>
-          <p className="muted">Una copia diaria se actualiza después de guardar cambios. También podés crear una copia manual.</p>
+          <p className="muted">Guarda copias, no sincroniza en tiempo real. En otra computadora, vinculá la misma cuenta y restaurá una copia.</p>
         </div>
         <Cloud className="drive-heading-icon" aria-hidden="true" />
       </div>
@@ -119,11 +119,19 @@ export function DriveBackupSettings({ drive }: { drive: DriveControls }) {
       ) : (
         <p className="drive-status" role="status">
           <HardDrive aria-hidden="true" />
-          {connected ? "Todavía no hay copias en Drive." : "Tus datos siguen guardados en esta computadora."}
+          {state?.restoreDecisionRequired
+            ? "Hay copias de otra computadora listas para restaurar."
+            : connected ? "Todavía no hay copias en Drive." : "Tus datos siguen guardados en esta computadora."}
         </p>
       )}
 
       <p className="drive-retention">Conserva los 30 respaldos diarios más recientes. Las copias manuales se guardan aparte.</p>
+
+      {state?.restoreDecisionRequired ? (
+        <p className="drive-restore-warning" role="alert">
+          Encontramos copias de otra computadora. Restaurá una antes de continuar: los respaldos automáticos quedan pausados para protegerlas.
+        </p>
+      ) : null}
 
       {!configured ? (
         <p className="drive-setup-note">Google Drive requiere registrar la app en Google Cloud antes de vincular una cuenta.</p>
@@ -134,10 +142,12 @@ export function DriveBackupSettings({ drive }: { drive: DriveControls }) {
         </Button>
       ) : (
         <div className="drive-actions">
-          <Button className="btn primary" disabled={working} onClick={() => void run("backup")}>
-            <Download aria-hidden="true" />
-            {busy === "backup" || state.busy === "backup" ? "Guardando respaldo…" : "Crear respaldo ahora"}
-          </Button>
+          {!state?.restoreDecisionRequired ? (
+            <Button className="btn primary" disabled={working} onClick={() => void run("backup")}>
+              <Download aria-hidden="true" />
+              {busy === "backup" || state.busy === "backup" ? "Guardando respaldo…" : "Crear respaldo ahora"}
+            </Button>
+          ) : null}
           <Button className="btn" disabled={working} onClick={() => void openRestore()}>
             <RefreshCw aria-hidden="true" />
             Ver y restaurar copias

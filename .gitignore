@@ -49,3 +49,4 @@ next-env.d.ts
 
 # empaquetado de la aplicacion de escritorio
 /release/
+/electron/drive-config.local.cjs

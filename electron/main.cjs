@@ -179,6 +179,7 @@ async function restoreDriveBackup(fileId) {
       archivedPath = "";
       throw error;
     }
+    await driveBackups.resolveRestoreDecision();
     await dialog.showMessageBox(window, {
       type: "info",
       title: "Respaldo restaurado",

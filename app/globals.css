@@ -1168,6 +1168,14 @@ td small {
 .drive-error {
   color: var(--red);
 }
+.drive-restore-warning {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--amber-light);
+  color: var(--amber);
+  font-size: 14px;
+}
 .drive-restore {
   display: grid;
   gap: 12px;
