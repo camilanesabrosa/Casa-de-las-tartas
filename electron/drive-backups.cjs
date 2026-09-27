@@ -172,8 +172,16 @@ class DriveBackupController {
         signal: AbortSignal.timeout(30_000),
       });
       const tokens = await tokenResponse.json();
-      if (!tokenResponse.ok || !tokens.access_token)
-        throw new Error("Google no pudo completar la conexión. Revisá el acceso e intentá otra vez.");
+      if (!tokenResponse.ok || !tokens.access_token) {
+        const code = typeof tokens.error === "string" ? tokens.error : "respuesta_incompleta";
+        const reasons = {
+          invalid_client: "Google rechazó el Client ID. Confirmá que siga activo y que sea de tipo Desktop.",
+          invalid_grant: "El código expiró o no coincide con esta autorización. Volvé a iniciar la conexión.",
+          unauthorized_client: "Google no autorizó este tipo de cliente para la cuenta o el proyecto.",
+          redirect_uri_mismatch: "La dirección local de retorno no coincide con la configuración OAuth.",
+        };
+        throw new Error(`Google rechazó la conexión (${code}). ${reasons[code] || "Revisá la configuración OAuth e intentá otra vez."}`);
+      }
       if (tokens.refresh_token) await this.writeEncryptedToken(tokens.refresh_token);
       else if (!this.config.encryptedRefreshToken)
         throw new Error("Google no entregó un acceso persistente. Desconectá la app en tu cuenta de Google y volvé a conectar.");
