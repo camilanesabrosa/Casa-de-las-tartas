@@ -15,7 +15,7 @@ const { fork } = require("node:child_process");
 const crypto = require("node:crypto");
 const { DatabaseSync } = require("node:sqlite");
 const { createServer } = require("node:net");
-const { join } = require("node:path");
+const { join, resolve, isAbsolute } = require("node:path");
 const { mkdirSync, existsSync } = require("node:fs");
 const { rename, rm } = require("node:fs/promises");
 const { UpdateController, unavailableReason } = require("./updater.cjs");
@@ -32,7 +32,12 @@ const APP_NAME = "Casa de las Tartas";
 const ICON = join(__dirname, "assets", "icon.png");
 
 // Branding must never move an existing installation's SQLite file or settings.
-const dataDirectory = join(app.getPath("appData"), "mostrador");
+const testDataDirectory = process.env.CASA_TEST_DATA_DIR;
+if (testDataDirectory && !isAbsolute(testDataDirectory))
+  throw new Error("CASA_TEST_DATA_DIR debe ser una ruta absoluta.");
+const dataDirectory = testDataDirectory
+  ? resolve(testDataDirectory)
+  : join(app.getPath("appData"), "mostrador");
 mkdirSync(dataDirectory, { recursive: true });
 app.setPath("userData", dataDirectory);
 app.setName(APP_NAME);
