@@ -1,6 +1,5 @@
 "use client";
 import { appPath } from "@/lib/paths";
-import { APP_NAME } from "@/lib/branding";
 import { CalendarView } from "./calendar-view";
 import { UpdateBanner, useDesktopUpdates } from "./updates";
 import { useDesktopDrive } from "./drive-backups";
@@ -245,14 +244,6 @@ export default function BusinessApp() {
           <MenuNav view={view} navigate={navigate} />
         </SidebarContent>
         <SidebarFooter>
-          <div className="sidebar-note">
-            <span className="demo-label">Versión de muestra</span>
-            <p>
-              Precios y movimientos
-              <br />
-              de ejemplo para probar.
-            </p>
-          </div>
           <button className="nav-button" onClick={() => setView("settings")}>
             <Settings />
             Configuración
@@ -354,7 +345,15 @@ export default function BusinessApp() {
           )}
         </main>
         <footer className="app-footer">
-          <span>{APP_NAME} · Versión de muestra privada</span>
+          <a
+            className="craftly-credit"
+            href="https://craftly.sh"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Hecha por Craftly.sh. Abrir sitio web en el navegador."
+          >
+            Hecha por Craftly.sh
+          </a>
           <span>Importes en pesos argentinos</span>
         </footer>
       </div>

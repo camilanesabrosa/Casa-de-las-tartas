@@ -245,22 +245,6 @@ strong {
   width: 16px;
   margin-left: auto;
 }
-.sidebar-note {
-  padding: 20px 12px 24px;
-}
-.demo-label {
-  font-size: 12px;
-  background: var(--brand-soft);
-  color: var(--brand-strong);
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  border-radius: 8px;
-}
-.sidebar-note p {
-  font-size: 14px;
-  color: var(--muted-foreground);
-  margin-top: 12px;
-}
 .workspace {
   flex: 1;
   min-width: 0;
@@ -702,6 +686,14 @@ td small {
   gap: 16px;
   color: var(--muted-foreground);
   font-size: 12px;
+}
+.craftly-credit {
+  color: var(--brand-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.craftly-credit:hover {
+  color: var(--brand-hover);
 }
 .empty {
   padding: 48px;
