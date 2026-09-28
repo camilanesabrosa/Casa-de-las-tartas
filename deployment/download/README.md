@@ -12,6 +12,7 @@ autorización en el navegador. No se guardan claves ni tokens en este repositori
 ```text
 /var/www/cdt-download/
   index.html
+  privacy-policy/index.html
   update/
     Casa-de-las-Tartas-0.2.0-win-x64-Setup.exe
     Casa-de-las-Tartas-0.2.0-win-x64-Setup.exe.blockmap

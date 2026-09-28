@@ -16,7 +16,9 @@ async function fixture(t, overrides = {}) {
     sha512: createHash("sha512").update(payload).digest("base64"), size: payload.length }], ...overrides };
   const release = join(root, "release");
   await mkdir(release);
+  await mkdir(join(root, "deployment/download/privacy-policy"), { recursive: true });
   await writeFile(join(root, "package.json"), JSON.stringify({ version }));
+  await writeFile(join(root, "deployment/download/privacy-policy/index.html"), "<!doctype html><title>Política de privacidad</title>");
   await writeFile(join(release, filename), payload);
   await writeFile(join(release, `${filename}.blockmap`), "blockmap fixture");
   await writeFile(join(release, "latest.yml"), JSON.stringify(manifest));
@@ -27,11 +29,15 @@ test("descarga: prepara HTML y archivos del canal con una sola copia del instala
   const { root, filename, payload } = await fixture(t);
   const result = await prepareDownload(root);
   const html = await readFile(join(result.directory, "index.html"), "utf8");
+  const privacy = await readFile(join(result.directory, "privacy-policy", "index.html"), "utf8");
   assert.ok(html.includes(`href="update/${filename}" download`));
+  assert.ok(html.includes('href="privacy-policy/">Política de privacidad</a>'));
+  assert.equal(privacy, "<!doctype html><title>Política de privacidad</title>");
+  assert.ok(privacy.includes("Política de privacidad"));
   assert.ok(html.includes("v0.2.0"));
   assert.ok(!html.includes("{{"));
   assert.ok(!/<script|https?:\/\//.test(html), "HTML sin JavaScript ni dependencias de red");
-  assert.deepEqual(await readdir(result.directory), ["index.html", "update"]);
+  assert.deepEqual(await readdir(result.directory), ["index.html", "privacy-policy", "update"]);
   assert.deepEqual(await readFile(join(result.directory, "update", filename)), payload);
   assert.equal(result.sha256, createHash("sha256").update(payload).digest("hex"));
   assert.equal((await readdir(join(result.directory, "update"))).length, 3);

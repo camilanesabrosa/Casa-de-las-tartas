@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Cómo Casa de las Tartas guarda los datos del negocio y usa Google Drive para respaldos.">
+  <meta name="theme-color" content="#f7f8f5">
+  <title>Política de privacidad · Casa de las Tartas</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f8f5;
+      --surface: #fff;
+      --ink: #202722;
+      --muted: #626b64;
+      --line: #dfe4dd;
+      --brand: #934fb8;
+      --brand-hover: #8143a3;
+      --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      --body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --display: Georgia, "Times New Roman", serif;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --space-16: 64px;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--paper); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 17px/1.65 var(--body);
+      text-wrap: pretty;
+    }
+    a { color: var(--brand-hover); text-underline-offset: 3px; }
+    a:hover { color: var(--ink); }
+    a:focus-visible { outline: 2px solid var(--brand); outline-offset: var(--space-1); border-radius: 8px; }
+    .site-header {
+      min-height: 72px;
+      padding: 0 var(--space-8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-6);
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .brand { color: var(--ink); font-weight: 600; text-decoration: none; }
+    .back { font-size: 14px; font-weight: 500; }
+    main { width: min(100% - 40px, 920px); margin: 0 auto; padding: var(--space-16) 0 96px; }
+    .document { max-width: 720px; }
+    h1 {
+      max-width: 660px;
+      margin: 0;
+      font: 400 clamp(42px, 7vw, 56px)/1.08 var(--display);
+      letter-spacing: -0.035em;
+      text-wrap: balance;
+    }
+    .updated { margin: var(--space-4) 0 0; color: var(--muted); font: 13px/1.5 var(--mono); }
+    .lede { margin: var(--space-8) 0 var(--space-12); max-width: 64ch; font-size: 19px; line-height: 1.55; }
+    .data-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin: 0 0 var(--space-16);
+      border-block: 1px solid var(--line);
+    }
+    .data-map > div { padding: var(--space-6) var(--space-6) var(--space-6) 0; }
+    .data-map > div + div { padding-left: var(--space-6); border-left: 1px solid var(--line); }
+    .data-map strong { display: block; margin-bottom: var(--space-2); font-size: 16px; font-weight: 600; }
+    .data-map span { display: block; color: var(--muted); font-size: 15px; line-height: 1.55; }
+    section { margin-top: var(--space-12); }
+    h2 { margin: 0 0 var(--space-3); font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+    p { margin: 0 0 var(--space-4); }
+    ul { margin: var(--space-3) 0 var(--space-4); padding-left: var(--space-6); }
+    li { padding-left: var(--space-1); margin: var(--space-2) 0; }
+    .contact { margin-top: var(--space-16); padding-top: var(--space-6); border-top: 1px solid var(--line); }
+    .site-footer { padding: var(--space-6) var(--space-4); border-top: 1px solid var(--line); color: var(--muted); text-align: center; font-size: 14px; }
+    @media (max-width: 600px) {
+      .site-header { min-height: 64px; padding-inline: 20px; }
+      main { width: min(100% - 32px, 720px); padding: var(--space-12) 0 72px; }
+      .lede { margin-bottom: var(--space-8); font-size: 18px; }
+      .data-map { grid-template-columns: 1fr; margin-bottom: var(--space-12); }
+      .data-map > div { padding: var(--space-4) 0; }
+      .data-map > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+      section { margin-top: var(--space-8); }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../">Casa de las Tartas</a>
+    <a class="back" href="../">Volver a descargas</a>
+  </header>
+  <main>
+    <article class="document">
+      <h1>Política de privacidad</h1>
+      <p class="updated">Vigente desde el 27 de septiembre de 2026</p>
+      <p class="lede">Casa de las Tartas es una aplicación de escritorio para administrar un negocio. La base de datos permanece en tu computadora. Si activás Google Drive, la app guarda allí copias de respaldo para que puedas recuperarlas.</p>
+
+      <div class="data-map" aria-label="Dónde se guardan tus datos">
+        <div>
+          <strong>En tu computadora</strong>
+          <span>La base activa y el acceso local a Google Drive.</span>
+        </div>
+        <div>
+          <strong>En tu Google Drive</strong>
+          <span>Las copias SQLite que crea la app, dentro de tu cuenta.</span>
+        </div>
+      </div>
+
+      <section aria-labelledby="responsable">
+        <h2 id="responsable">Quién es responsable</h2>
+        <p>Esta política corresponde a Casa de las Tartas y a su aplicación de escritorio. Para consultas sobre privacidad o solicitudes relacionadas con los datos, escribí a <a href="mailto:fercsbmwlp@gmail.com">fercsbmwlp@gmail.com</a>.</p>
+      </section>
+
+      <section aria-labelledby="datos">
+        <h2 id="datos">Qué datos maneja la aplicación</h2>
+        <p>La base local puede contener productos, precios, ventas, pagos, caja, compras, gastos, proveedores, movimientos y ajustes de stock que cargue el negocio.</p>
+        <p>Si conectás Google Drive, la app solicita el permiso <code>drive.file</code> para crear y administrar sus propios archivos de respaldo. No solicita acceso a Gmail, contactos ni a todo el contenido de Drive. Cada copia es una base SQLite que puede incluir todos los registros del negocio.</p>
+      </section>
+
+      <section aria-labelledby="uso">
+        <h2 id="uso">Para qué se usan y dónde se guardan</h2>
+        <p>Los datos se usan para que la aplicación funcione y, si conectás Drive, para crear, listar y restaurar respaldos. La conexión se realiza entre la app y los servicios OAuth y Drive de Google. Casa de las Tartas no recibe una copia de la base en sus servidores ni la usa para publicidad, perfiles o venta de datos.</p>
+        <p>La app guarda en la computadora un token de renovación de Google protegido con el mecanismo de almacenamiento seguro del sistema operativo. El archivo SQLite de respaldo no se cifra por separado antes de subirlo: queda guardado en tu Google Drive y sujeto a la configuración y protecciones de esa cuenta. Cualquier persona con acceso a la cuenta o al archivo compartido podría acceder a la copia.</p>
+      </section>
+
+      <section aria-labelledby="frecuencia">
+        <h2 id="frecuencia">Copias y conservación</h2>
+        <p>Al habilitar Drive, la app crea copias automáticas. Conserva las 30 copias automáticas diarias más recientes; una copia manual queda aparte y permanece hasta que la borres desde Drive. La app no sincroniza en tiempo real ni combina cambios de varias computadoras.</p>
+        <p>Restaurar una copia reemplaza la base activa de esa computadora y reinicia la app. Antes del reemplazo, conserva una copia local de seguridad de la base anterior.</p>
+      </section>
+
+      <section aria-labelledby="control">
+        <h2 id="control">Tus controles</h2>
+        <ul>
+          <li>Podés dejar de usar Drive con “Desconectar” en la app. Esto quita de esa computadora el token guardado, pero no elimina los archivos ya subidos.</li>
+          <li>Podés borrar las copias de Casa de las Tartas desde tu Google Drive y revocar el acceso de la app en la configuración de tu cuenta de Google.</li>
+          <li>La base local se administra desde la app y permanece en el dispositivo incluso si desconectás Drive. La desinstalación normal no borra los datos del negocio.</li>
+        </ul>
+        <p>Si la base contiene información personal de clientes, el negocio que la cargó administra esos registros. Para solicitar acceso, corrección o eliminación de información, contactá al responsable del negocio. En Argentina, podés consultar tus derechos ante la <a href="https://www.argentina.gob.ar/aaip/datospersonales/derechos" target="_blank" rel="noreferrer">Agencia de Acceso a la Información Pública</a>.</p>
+      </section>
+
+      <section aria-labelledby="tecnicos">
+        <h2 id="tecnicos">Conexiones técnicas</h2>
+        <p>La app consulta el canal de actualizaciones de sinnick.dev para comprobar y descargar versiones. El servidor puede registrar la dirección IP, la fecha y datos técnicos básicos de esas solicitudes; no recibe la base de datos del negocio mediante el actualizador.</p>
+        <p>Google procesa las solicitudes de autorización y Drive conforme a sus propios términos y políticas. La app no incorpora publicidad ni herramientas de analítica en la integración de Drive.</p>
+      </section>
+
+      <section aria-labelledby="cambios">
+        <h2 id="cambios">Cambios en esta política</h2>
+        <p>Si cambia la forma en que Casa de las Tartas accede, usa o conserva datos de Google, actualizaremos esta página y la fecha de vigencia antes de aplicar el cambio.</p>
+      </section>
+
+      <section class="contact" aria-labelledby="contacto">
+        <h2 id="contacto">Contacto</h2>
+        <p>Casa de las Tartas · <a href="mailto:fercsbmwlp@gmail.com">fercsbmwlp@gmail.com</a></p>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Casa de las Tartas · <a href="../">Descargas</a></footer>
+</body>
+</html>

@@ -56,6 +56,10 @@
     .download:active { background: var(--text); }
     .download:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--space-1); }
     .note { margin: var(--space-6) 0 0; color: var(--muted); font-size: var(--text-small); }
+    footer { margin-top: var(--space-8); font-size: var(--text-small); }
+    footer a { color: var(--text); text-underline-offset: 3px; }
+    footer a:hover { color: var(--accent-hover); }
+    footer a:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--space-1); }
   </style>
 </head>
 <body>
@@ -64,6 +68,7 @@
     <p class="version">Windows 64 bits · v{{VERSION}} · {{SIZE_MB}} MB</p>
     <a class="download" href="update/{{INSTALLER}}" download>Descargar .exe</a>
     <p class="note">El instalador no tiene firma digital.<br>Windows puede mostrar una advertencia de editor desconocido.</p>
+    <footer><a href="privacy-policy/">Política de privacidad</a></footer>
   </main>
 </body>
 </html>

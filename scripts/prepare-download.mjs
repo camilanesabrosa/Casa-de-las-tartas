@@ -37,9 +37,12 @@ export async function prepareDownload(root = projectRoot) {
     .replaceAll("{{SIZE_MB}}", new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(size / 1_000_000));
   const directory = join(release, "cdt");
   const updateDirectory = join(directory, "update");
+  const privacyDirectory = join(directory, "privacy-policy");
   await mkdir(updateDirectory, { recursive: true });
+  await mkdir(privacyDirectory, { recursive: true });
   await copyFile(installer, join(updateDirectory, filename));
   await copyFile(`${installer}.blockmap`, join(updateDirectory, `${filename}.blockmap`));
+  await copyFile(join(root, "deployment/download/privacy-policy/index.html"), join(privacyDirectory, "index.html"));
   await writeFile(join(directory, "index.html"), html);
   await writeFile(join(updateDirectory, "latest.yml"), manifestText);
   return { directory, filename, version, bytes: size, sha256: sha256.digest("hex") };

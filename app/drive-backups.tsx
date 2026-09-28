@@ -125,7 +125,10 @@ export function DriveBackupSettings({ drive }: { drive: DriveControls }) {
         </p>
       )}
 
-      <p className="drive-retention">Conserva los 30 respaldos diarios más recientes. Las copias manuales se guardan aparte.</p>
+      <p className="drive-retention">
+        Conserva los 30 respaldos diarios más recientes. Las copias manuales se guardan aparte.{" "}
+        <a href="https://sinnick.dev/cdt/privacy-policy/" target="_blank" rel="noreferrer">Política de privacidad</a>
+      </p>
 
       {state?.restoreDecisionRequired ? (
         <p className="drive-restore-warning" role="alert">

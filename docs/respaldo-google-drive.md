@@ -21,6 +21,11 @@ La integración ya está en el código, pero la conexión queda desactivada hast
 4. Copiar el Client ID público a `clientId` en `electron/drive-config.cjs`, y luego compilar la app. La variable `CASA_GOOGLE_DRIVE_CLIENT_ID` sirve solo para desarrollo cuando se ejecuta desde un entorno que la tenga definida; una app abierta desde el menú Inicio no hereda necesariamente esa configuración.
 5. Antes de distribuir, revisar el estado de publicación de la pantalla de consentimiento. En modo Testing, las autorizaciones de scopes distintos a identidad caducan a los 7 días, incluso el refresh token; no es apropiado para respaldo continuo.
 
+La política pública de privacidad de la integración está en
+`https://sinnick.dev/cdt/privacy-policy/`. La app debe publicarse con audiencia
+External y estado In production para que cualquier cuenta Google pueda
+autorizarla; el modo Testing limita el acceso a la lista de usuarios de prueba.
+
 Referencias oficiales: [OAuth para apps instaladas](https://developers.google.com/identity/protocols/oauth2), [recomendaciones OAuth y PKCE](https://developers.google.com/identity/protocols/oauth2/resources/best-practices), [audiencia y modo Testing](https://support.google.com/cloud/answer/15549945?hl=en).
 
 ## Política de los respaldos

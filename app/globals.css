@@ -1148,6 +1148,19 @@ td small {
 .drive-setup-note {
   color: var(--muted-foreground);
 }
+.drive-retention a {
+  color: var(--brand-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.drive-retention a:hover {
+  color: var(--foreground);
+}
+.drive-retention a:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
 .drive-setup-note {
   padding: 12px;
   background: var(--secondary);
