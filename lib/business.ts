@@ -68,6 +68,7 @@ export type Register = {
   counted?: number;
   expected?: number;
   difference?: number;
+  automatic?: boolean;
 };
 export type Business = {
   version: number;
@@ -178,6 +179,26 @@ export function withRegisters<T extends Business>(b: T): T {
 }
 export const openRegister = (b: Business) =>
   b.registers.find((r) => !r.closedAt);
+// Business days use Mendoza's time, regardless of the PC's timezone.
+export function registerClosingAt(openedAt: string): string {
+  return new Date(`${dateKey(new Date(openedAt))}T23:59:00-03:00`).toISOString();
+}
+export function autoCloseRegisters<T extends Business>(original: T, now = new Date().toISOString()): T {
+  const due = original.registers.filter((r) => !r.closedAt && registerClosingAt(r.openedAt) <= now);
+  if (!due.length) return original;
+  const next = structuredClone(original);
+  for (const r of next.registers) {
+    if (!due.some((item) => item.id === r.id)) continue;
+    r.closedAt = registerClosingAt(r.openedAt);
+    r.expected = registerExpected(next, r, r.closedAt);
+    r.automatic = true;
+    // No person counted the money. Never invent an audit or adjustment payment.
+    delete r.counted;
+    delete r.difference;
+  }
+  next.version++;
+  return next;
+}
 // Corte de turno sobre todos los medios de pago: lo que el turno debería haber
 // dejado es la apertura más todo lo que entró, menos todo lo que salió.
 export function registerExpected(b: Business, r: Register, until?: string) {

@@ -140,17 +140,15 @@ test("agrupa por la fecha de Mendoza incluso después de medianoche UTC", () => 
   assert.equal(dailyBalances(b).has("2026-09-21"), false);
 });
 
-test("una caja que cruza medianoche se muestra al abrir y al cerrar sin repetir ingresos", () => {
-  let b = applyAction(
+test("una caja histórica que cruzó medianoche se conserva sin repetir ingresos", () => {
+  const b = applyAction(
     emptyBusiness(),
     { type: "openRegister", opening: 50000 },
     "2026-09-20T22:00:00Z",
   );
-  b = applyAction(
-    b,
-    { type: "closeRegister", counted: 48000 },
-    "2026-09-21T04:00:00Z",
-  );
+  // Closed records from previous versions must not be rewritten by the new rule.
+  Object.assign(b.registers[0], { closedAt: "2026-09-21T04:00:00Z", counted: 48000, expected: 50000, difference: -2000 });
+  b.payments.push({ id: "legacy-adjustment", date: "2026-09-21T04:00:00Z", amount: 2000, kind: "withdrawal", reference: "Diferencia de caja" });
   const days = dailyBalances(b);
   assert.equal(days.get("2026-09-20")!.balance, 0);
   assert.equal(days.get("2026-09-21")!.balance, -2000);

@@ -246,6 +246,7 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
   // Simulate an installed version whose category table predates editable codes.
   const legacyDatabase = new DatabaseSync(process.env.MOSTRADOR_DATABASE_PATH);
   legacyDatabase.exec("CREATE TABLE product_categories (owner_id TEXT NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, PRIMARY KEY (owner_id, name))");
+  legacyDatabase.exec("CREATE TABLE registers (owner_id TEXT NOT NULL, id TEXT NOT NULL, opened_at TEXT NOT NULL, opening INTEGER NOT NULL, closed_at TEXT, counted INTEGER, expected INTEGER, difference INTEGER, PRIMARY KEY (owner_id, id))");
   legacyDatabase.close();
   const owner = "editing-tests";
   let b: Business = await readBusiness(owner);
@@ -291,6 +292,42 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     await save({ type: "productCategory", name: "Postres" });
     assert.ok(!getProductCategories(b).includes("Panadería"));
     assert.equal(getProductCategoryCodes(b).Pastas, "C");
+    // Same real SQLite fixture also checks the additive register migration,
+    // overdue startup recovery and concurrent timer/user writes.
+    const registerOwner = "automatic-register-tests";
+    const opening = "2026-10-04T12:00:00.000Z";
+    const beforeCutoff = "2026-10-05T02:58:59.000Z";
+    const cutoff = "2026-10-05T02:59:00.000Z";
+    let stored = await readBusiness(registerOwner, opening);
+    stored = await updateBusiness(registerOwner, stored.version, randomUUID(), { type: "openRegister", opening: 50000 }, opening);
+    const version = stored.version;
+    const [expenseSaved, automaticallyClosed] = await Promise.all([
+      updateBusiness(registerOwner, version, randomUUID(), { type: "expense", name: "Último gasto", category: "Variable", amount: 10000, paid: true }, beforeCutoff),
+      readBusiness(registerOwner, cutoff),
+    ]);
+    assert.equal(expenseSaved.expenses.length, 1);
+    assert.equal(automaticallyClosed.expenses.length, 1);
+    assert.equal(automaticallyClosed.registers[0].expected, 40000);
+    assert.equal(automaticallyClosed.registers[0].automatic, true);
+    assert.equal(automaticallyClosed.registers[0].closedAt, cutoff);
+    assert.equal(automaticallyClosed.registers[0].counted, undefined);
+    assert.equal(automaticallyClosed.registers[0].difference, undefined);
+    const reopened = await readBusiness(registerOwner, "2026-10-06T12:00:00.000Z");
+    assert.deepEqual(JSON.parse(JSON.stringify(reopened)), JSON.parse(JSON.stringify(automaticallyClosed)), "releer no duplica el cierre ni su revisión");
+    assert.equal(reopened.payments.length, 1, "el cierre no crea ajustes de dinero");
+    await assert.rejects(updateBusiness(registerOwner, expenseSaved.version, randomUUID(), { type: "openRegister", opening: 0 }, "2026-10-06T12:00:00.000Z"), /Los datos cambiaron/);
+    const request = randomUUID();
+    const nextDay = await updateBusiness(registerOwner, reopened.version, request, { type: "openRegister", opening: 40000 }, "2026-10-06T12:00:00.000Z");
+    assert.equal(nextDay.registers.length, 2);
+    const retried = await updateBusiness(registerOwner, reopened.version, request, { type: "openRegister", opening: 40000 }, "2026-10-06T12:00:00.000Z");
+    assert.deepEqual(JSON.parse(JSON.stringify(retried)), JSON.parse(JSON.stringify(nextDay)), "un reintento tampoco duplica la apertura");
+    const checkDatabase = new DatabaseSync(process.env.MOSTRADOR_DATABASE_PATH);
+    try {
+      const row = checkDatabase.prepare("SELECT automatic, counted, difference FROM registers WHERE owner_id = ? AND id = ?").get(registerOwner, nextDay.registers[0].id);
+      assert.equal(row!.automatic, 1);
+      assert.equal(row!.counted, null);
+      assert.equal(row!.difference, null);
+    } finally { checkDatabase.close(); }
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

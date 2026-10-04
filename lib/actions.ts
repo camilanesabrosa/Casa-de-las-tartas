@@ -7,6 +7,8 @@ import {
   registerExpected,
   getProductCategories,
   getProductCategoryCodes,
+  autoCloseRegisters,
+  registerClosingAt,
 } from "./business";
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
@@ -125,7 +127,7 @@ export function applyAction(
   now = new Date().toISOString(),
 ): Business {
   const a = actionSchema.parse(raw);
-  const b = structuredClone(original);
+  const b = structuredClone(autoCloseRegisters(original, now));
   b.productCategories = getProductCategories(b);
   b.productCategoryCodes = getProductCategoryCodes(b);
   const id = (prefix: string) =>
@@ -399,6 +401,8 @@ export function applyAction(
       payment(a.kind, a.amount, a.reason);
       break;
     case "openRegister": {
+      if (registerClosingAt(now) <= now)
+        throw new Error("La caja del día se cierra a las 23:59. Podés abrir una nueva desde las 00:00.");
       if (openRegister(b))
         throw new Error("Ya hay una caja abierta. Cerrala antes de abrir otra.");
       b.registers.push({
