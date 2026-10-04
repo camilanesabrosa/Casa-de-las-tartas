@@ -2,7 +2,7 @@
   "name": "casa-de-las-tartas",
   "description": "Gestión local de ventas, productos y caja de Casa de las Tartas",
   "author": "Casa de las Tartas",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
