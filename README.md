@@ -80,6 +80,11 @@ futuras, y conserva los precios guardados en cada venta. Las cantidades no
 mezclan kilos con unidades. Se agrupa según las categorías actuales del
 catálogo; los productos borrados se muestran en Sin categoría.
 
+Prueba de escritorio con SQLite temporal: los botones Día/Semana/Mes mostraron
+$18.000/$42.000/$24.000, respectivamente, repartidos entre Congelados y Tartas.
+Pastas permaneció visible en cero. Se comprobó consultar septiembre desde la
+fecha de referencia y volver a hoy. No se alteraron los datos reales.
+
 La sección **Ganancias** muestra el resultado del día, últimos 7 o 30 días,
 mes actual o todo el historial hasta hoy, con fechas de Argentina.
 La ganancia bruta resta a las ventas no anuladas el costo guardado en sus

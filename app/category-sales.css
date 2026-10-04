@@ -18,7 +18,7 @@
 .category-sales-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--category-sales-body); }
 .category-sales-table th, .category-sales-table td { padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--border); text-align: left; }
 .category-sales-table thead th { color: var(--muted-foreground); font-size: var(--category-sales-note); font-weight: 500; }
-.category-sales-table tbody th { min-width: 160px; font-weight: 500; overflow-wrap: anywhere; }
+.category-sales-table tbody th { min-width: 160px; font-size: var(--category-sales-body); font-weight: 500; overflow-wrap: anywhere; }
 .category-sales-table td { font-variant-numeric: tabular-nums; }
 .category-sales-table th:last-child, .category-sales-table td:last-child { text-align: right; }
 .category-sales-amount { font-family: var(--font-mono); white-space: nowrap; }
