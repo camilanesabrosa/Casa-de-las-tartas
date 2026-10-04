@@ -11,6 +11,7 @@ import {
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
 const text = z.string().trim().min(1).max(160);
+const categoryCode = z.string().trim().toUpperCase().regex(/^[A-Z]{1,3}$/, "Usá entre 1 y 3 letras de A a Z, sin números ni símbolos.");
 const productSchema = z.object({
   id: z.string().optional(),
   number: z
@@ -38,8 +39,8 @@ const productSchema = z.object({
 export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("resetBusiness") }),
   z.object({ type: z.literal("product"), product: productSchema }),
-  z.object({ type: z.literal("productCategory"), name: text }),
-  z.object({ type: z.literal("renameProductCategory"), name: text, newName: text }),
+  z.object({ type: z.literal("productCategory"), name: text, code: categoryCode.optional() }),
+  z.object({ type: z.literal("renameProductCategory"), name: text, newName: text, code: categoryCode.optional() }),
   z.object({ type: z.literal("deleteProductCategory"), name: text, targetCategory: text.optional() }),
   z.object({ type: z.literal("productPrice"), id: text, price: amount.refine((n) => n > 0, "El precio debe ser mayor que cero.") }),
   z.object({
@@ -175,6 +176,11 @@ export function applyAction(
     if (!existing) throw new Error("No encontramos esa categoría. Actualizá los datos.");
     return existing;
   };
+  const assignCategoryCode = (name: string, code: string) => {
+    if (Object.entries(b.productCategoryCodes!).some(([other, value]) => other !== name && value === code))
+      throw new Error(`La letra ${code} ya está usada en otra categoría. Elegí una diferente.`);
+    b.productCategoryCodes = Object.fromEntries([...Object.entries(b.productCategoryCodes!).filter(([other]) => other !== name), [name, code]]);
+  };
   // Keep original payment dates and closed-register figures. Corrections belong
   // to today, including negative expense entries that reverse a mistaken charge.
   const reconcileExpense = (expenseId: string, target: number) => {
@@ -188,6 +194,7 @@ export function applyAction(
       if (b.productCategories.some((name) => name.toLocaleLowerCase("es-AR") === a.name.toLocaleLowerCase("es-AR")))
         throw new Error("Esa categoría ya existe.");
       categoryName(a.name);
+      if (a.code) assignCategoryCode(a.name, a.code);
       break;
     case "renameProductCategory": {
       const oldName = existingCategory(a.name);
@@ -196,6 +203,7 @@ export function applyAction(
         throw new Error("Esa categoría ya existe.");
       b.productCategories = b.productCategories.map((name) => name === oldName ? a.newName : name);
       b.productCategoryCodes = Object.fromEntries(Object.entries(b.productCategoryCodes).map(([name, code]) => [name === oldName ? a.newName : name, code]));
+      if (a.code) assignCategoryCode(a.newName, a.code);
       for (const product of b.products) if (product.category === oldName) product.category = a.newName;
       break;
     }

@@ -28,3 +28,11 @@ test("categorías: una lista vacía no vuelve a mostrar las categorías iniciale
   assert.ok(html.includes("No hay productos con esos filtros"));
   assert.ok(!html.includes("Pastas · C"));
 });
+
+test("categorías: los filtros y la tabla muestran la letra elegida", () => {
+  const data = applyAction(createFreshBusiness(), { type: "renameProductCategory", name: "Precocidos", newName: "Precocidos", code: "M" });
+  const html = renderToStaticMarkup(<ProductsView data={data} save={async () => {}} />);
+  assert.ok(html.includes("Precocidos · M"));
+  assert.ok(html.includes('class="product-code">M1</span>'));
+  assert.ok(!html.includes('class="product-code">A1</span>'));
+});

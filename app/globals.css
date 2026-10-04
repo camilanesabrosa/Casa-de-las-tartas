@@ -1815,6 +1815,10 @@ td small {
   justify-content: flex-end;
   margin-bottom: var(--space-4);
 }
+.category-code-input {
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
 .category-list {
   list-style: none;
   padding: 0;

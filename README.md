@@ -68,6 +68,10 @@ de cebolla y queso. El número se guarda con el producto y se edita desde el
 formulario, para que borrar o reordenar artículos no descoloque el cartel
 impreso. El buscador acepta el código además del nombre, tanto en el formato
 actual `A4` como en el anterior `4A`.
+Desde Productos y stock → Categorías se puede elegir o cambiar la letra de cada
+categoría. Las letras deben ser únicas, con entre 1 y 3 caracteres de A a Z.
+Cambiar la letra modifica los códigos visibles de sus productos, sin cambiar
+los números de cartel ni los importes de ventas anteriores.
 
 ## Reglas de negocio
 

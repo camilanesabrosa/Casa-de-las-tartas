@@ -205,6 +205,41 @@ test("las letras siguen siendo únicas después de Z y admiten nombres especiale
   assert.equal(new Set(Object.values(getProductCategoryCodes(b))).size, getProductCategories(b).length);
 });
 
+test("se puede elegir y cambiar la letra de una categoría sin modificar productos ni ventas anteriores", () => {
+  let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Milanesas", code: " m " });
+  assert.equal(getProductCategoryCodes(b).Milanesas, "M");
+  const product = b.products[0];
+  b = applyAction(b, { type: "adjustStock", productId: product.id, quantity: 1000, reason: "Prueba" });
+  b = applyAction(b, { type: "sale", items: [{ productId: product.id, quantity: 500 }], method: "Efectivo" });
+  const products = structuredClone(b.products);
+  const sales = structuredClone(b.sales);
+  b = applyAction(b, { type: "renameProductCategory", name: "Precocidos", newName: "Precocidos", code: "x" });
+  assert.deepEqual(b.products, products);
+  assert.deepEqual(b.sales, sales);
+  const updated = b.products[0];
+  const names = getProductCategories(b);
+  const codes = getProductCategoryCodes(b);
+  assert.equal(productCode(updated, names, codes), "X1");
+  assert.ok(matchesCode(updated, "x1", names, codes));
+  assert.ok(matchesCode(updated, "1x", names, codes));
+  assert.ok(!matchesCode(updated, "A1", names, codes));
+  assert.throws(() => applyAction(b, { type: "productCategory", name: "Otra", code: "X" }), /ya está usada/);
+  assert.throws(() => applyAction(b, { type: "renameProductCategory", name: "Milanesas", newName: "Milanesas", code: "c" }), /ya está usada/);
+  for (const code of ["", "A1", "Ñ", "AAAA", "A-B"]) assert.throws(() => applyAction(b, { type: "productCategory", name: "Otra", code }));
+});
+
+test("las letras elegidas no duplican las asignaciones automáticas ni superan tres caracteres", () => {
+  let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Última", code: "ZZZ" });
+  b = applyAction(b, { type: "productCategory", name: "Nueva" });
+  assert.equal(getProductCategoryCodes(b).Nueva, "F");
+  assert.equal(getProductCategoryCodes(b)["Última"], "ZZZ");
+  b = applyAction(b, { type: "renameProductCategory", name: "Nueva", newName: "Nueva", code: "AA" });
+  b = applyAction(b, { type: "productCategory", name: "Otra" });
+  const codes = Object.values(getProductCategoryCodes(b));
+  assert.equal(new Set(codes).size, codes.length);
+  assert.ok(codes.every((code) => /^[A-Z]{1,3}$/.test(code)));
+});
+
 test("SQLite conserva categorías vacías, gastos editados y precios históricos al volver a leer", async () => {
   const directory = await mkdtemp(join(tmpdir(), "cdt-editing-test-"));
   process.env.MOSTRADOR_DATABASE_PATH = join(directory, "business.sqlite");
@@ -219,8 +254,9 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     b = await readBusiness(owner);
   };
   try {
-    await save({ type: "productCategory", name: "Panadería" });
+    await save({ type: "productCategory", name: "Panadería", code: "P" });
     assert.ok(getProductCategories(b).includes("Panadería"));
+    assert.equal(getProductCategoryCodes(b)["Panadería"], "P");
     assert.equal(b.products.filter((p) => p.category === "Panadería").length, 0);
     await save({ type: "expense", name: "Luz", category: "Fijo", amount: 100000, paid: true });
     const expenseId = b.expenses[0].id;
@@ -240,8 +276,9 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     assert.equal(b.sales[0].items[0].price, 700000);
     assert.equal(b.sales[0].total, 700000);
     const previousSales = structuredClone(b.sales);
-    await save({ type: "renameProductCategory", name: "Precocidos", newName: "Listos" });
-    assert.equal(getProductCategoryCodes(b).Listos, "A");
+    await save({ type: "renameProductCategory", name: "Precocidos", newName: "Listos", code: "L" });
+    assert.equal(getProductCategoryCodes(b).Listos, "L");
+    assert.equal(productCode(b.products.find((p) => p.id === id)!, getProductCategories(b), getProductCategoryCodes(b)), "L1");
     assert.equal(b.products.find((p) => p.id === id)!.category, "Listos");
     assert.ok(!getProductCategories(b).includes("Precocidos"));
     await save({ type: "deleteProductCategory", name: "Congelados", targetCategory: "Listos" });

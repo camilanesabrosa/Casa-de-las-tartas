@@ -110,22 +110,28 @@ const letterForIndex = (position: number) => {
   }
   return code;
 };
+export function nextProductCategoryCode(codes: Record<string, string>): string {
+  const used = new Set(Object.values(codes).filter((code) => /^[A-Z]{1,3}$/.test(code)));
+  const highest = Math.max(0, ...[...used].map((code) => [...code].reduce((index, letter) => index * 26 + letter.charCodeAt(0) - 64, 0)));
+  const maximum = 26 + 26 ** 2 + 26 ** 3;
+  let index = highest < maximum ? highest + 1 : 1;
+  while (used.has(letterForIndex(index))) index = index % maximum + 1;
+  return letterForIndex(index);
+}
 export function getProductCategoryCodes(b: Pick<Business, "products" | "productCategories" | "productCategoryCodes">): Record<string, string> {
   const names = getProductCategories(b);
   const saved = b.productCategoryCodes || {};
   const entries: [string, string][] = [];
   const used = new Set<string>();
-  let highest = 0;
   for (const name of names) {
     const code = Object.hasOwn(saved, name) ? saved[name] : undefined;
     if (!code || !/^[A-Z]{1,3}$/.test(code) || used.has(code)) continue;
     entries.push([name, code]);
     used.add(code);
-    highest = Math.max(highest, [...code].reduce((index, letter) => index * 26 + letter.charCodeAt(0) - 64, 0));
   }
   for (const name of names) {
     if (entries.some(([existing]) => existing === name)) continue;
-    const code = letterForIndex(++highest);
+    const code = nextProductCategoryCode(Object.fromEntries(entries));
     entries.push([name, code]);
   }
   return Object.fromEntries(entries);

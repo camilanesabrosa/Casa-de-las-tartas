@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getProductCategories, getProductCategoryCodes, type Business } from "@/lib/business";
+import { getProductCategories, getProductCategoryCodes, nextProductCategoryCode, type Business } from "@/lib/business";
 import { Field, Form, Modal, type Save } from "./components";
 
 type Screen = { type: "list" | "new" } | { type: "edit" | "delete"; name: string };
@@ -81,9 +82,14 @@ export function ProductCategories({ data, save, close }: { data: Business; save:
           </Form>
         )
       ) : (
-        <Form key={`${screen.type}-${selected}`} close={back} label={screen.type === "new" ? "Crear categoría" : "Guardar cambios"} submit={(form) => save(screen.type === "new" ? { type: "productCategory", name: String(form.get("name")) } : { type: "renameProductCategory", name: selected, newName: String(form.get("name")) })}>
+        <Form key={`${screen.type}-${selected}`} close={back} label={screen.type === "new" ? "Crear categoría" : "Guardar cambios"} submit={(form) => save(screen.type === "new" ? { type: "productCategory", name: String(form.get("name")), code: String(form.get("code")) } : { type: "renameProductCategory", name: selected, newName: String(form.get("name")), code: String(form.get("code")) })}>
           <Field label="Nombre de la categoría" name="name" defaultValue={selected} />
-          {screen.type === "edit" ? <p className="muted">El nombre se actualizará en sus {products.length} productos. Los códigos, precios, stock y ventas anteriores se conservan.</p> : null}
+          <label className="field">
+            <span>Letra de la categoría</span>
+            <Input className="field-input category-code-input" name="code" defaultValue={screen.type === "edit" ? codes[selected] : nextProductCategoryCode(codes)} required maxLength={3} pattern="[a-zA-Z]{1,3}" autoCapitalize="characters" aria-describedby="category-code-hint" />
+            <small id="category-code-hint">Usá entre 1 y 3 letras, como A o AB. No puede estar usada en otra categoría.</small>
+          </label>
+          {screen.type === "edit" ? <p className="muted">Si cambiás la letra, los códigos de sus {products.length} productos usarán la nueva. Los números de cartel, precios, stock y ventas anteriores se conservan.</p> : null}
         </Form>
       )}
     </Modal>
