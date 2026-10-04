@@ -136,9 +136,13 @@ export const categoryLetter = (category: string, names: readonly string[] = cate
   return codes && Object.hasOwn(codes, name) ? codes[name] : letterForIndex(index + 1);
 };
 export const productCode = (p: Pick<Product, "number" | "category">, names: readonly string[] = categories, codes?: Record<string, string>) =>
-  `${p.number}${categoryLetter(p.category, names, codes)}`;
-export const matchesCode = (p: Pick<Product, "number" | "category">, q: string, names: readonly string[] = categories, codes?: Record<string, string>) =>
-  productCode(p, names, codes).toLowerCase() === q.trim().toLowerCase().replace(/\s+/g, "");
+  `${categoryLetter(p.category, names, codes)}${p.number}`;
+export const matchesCode = (p: Pick<Product, "number" | "category">, q: string, names: readonly string[] = categories, codes?: Record<string, string>) => {
+  const query = q.trim().toLowerCase().replace(/\s+/g, "");
+  const current = productCode(p, names, codes).toLowerCase();
+  const legacy = `${p.number}${categoryLetter(p.category, names, codes)}`.toLowerCase();
+  return query === current || query === legacy;
+};
 const hasNumber = (p: Product) => Number.isInteger(p.number) && p.number > 0;
 // Los documentos guardados antes del cartel numerado no traen `number`.
 // Se completa por orden de aparición sin pisar los números ya asignados.

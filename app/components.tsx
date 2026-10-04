@@ -32,7 +32,7 @@ import {
   lineTotal,
   varieties,
   categories,
-  categoryLetter,
+  productCode,
   getProductCategoryCodes,
   registerBreakdown,
   openRegister,
@@ -298,7 +298,7 @@ export function ProductEditor({
             <small>
               Código para el buscador:{" "}
               <strong>
-                {number ? `${number}${categoryLetter(category || newCategory.trim(), previewNames, previewCodes)}` : "—"}
+                {number && (category || newCategory.trim()) ? productCode({ number: Number(number), category: category || newCategory.trim() }, previewNames, previewCodes) : "—"}
               </strong>
             </small>
           </label>

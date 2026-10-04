@@ -12,6 +12,8 @@ test("categorías: la tabla muestra los nombres editados y mantiene las letras d
   assert.ok(html.includes("Listos · A"));
   assert.ok(html.includes("Pastas · C"));
   assert.ok(html.includes("Tartas · E"));
+  assert.ok(html.includes('class="product-code">A1</span>'));
+  assert.ok(!html.includes('class="product-code">1A</span>'));
   assert.ok(!html.includes("Precocidos"));
   assert.ok(!html.includes("Congelados"));
   assert.ok(html.includes("Categorías"));

@@ -90,11 +90,12 @@ test("categorías nuevas tienen códigos estables, aparecen vacías y se conserv
   b = applyAction(b, { type: "product", product });
   const created = b.products.at(-1)!;
   assert.equal(created.category, "Milanesas");
-  assert.equal(productCode(created, getProductCategories(b)), "1F");
+  assert.equal(productCode(created, getProductCategories(b)), "F1");
+  assert.ok(matchesCode(created, "f 1", getProductCategories(b)));
   assert.ok(matchesCode(created, "1 f", getProductCategories(b)));
   assert.throws(() => applyAction(b, { type: "product", product }), /ya está usado/);
   b = applyAction(b, { type: "productCategory", name: "Postres" });
-  assert.equal(productCode(created, getProductCategories(b)), "1F");
+  assert.equal(productCode(created, getProductCategories(b)), "F1");
   b = applyAction(b, { type: "resetBusiness" });
   assert.ok(getProductCategories(b).includes("Postres"));
 });
@@ -195,6 +196,12 @@ test("las letras siguen siendo únicas después de Z y admiten nombres especiale
   assert.equal(getProductCategoryCodes(b)["Categoría 22"], "AB");
   b = applyAction(b, { type: "renameProductCategory", name: "Categoría 22", newName: "__proto__" });
   assert.equal(getProductCategoryCodes(b).__proto__, "AB");
+  const product = { category: "__proto__", number: 12 };
+  assert.equal(productCode(product, getProductCategories(b), getProductCategoryCodes(b)), "AB12");
+  for (const query of ["ab12", " A B 1 2 ", "12AB", "12 a b"])
+    assert.ok(matchesCode(product, query, getProductCategories(b), getProductCategoryCodes(b)));
+  for (const query of ["AB1", "AB", "12", "A12", "AB120"])
+    assert.ok(!matchesCode(product, query, getProductCategories(b), getProductCategoryCodes(b)));
   assert.equal(new Set(Object.values(getProductCategoryCodes(b))).size, getProductCategories(b).length);
 });
 

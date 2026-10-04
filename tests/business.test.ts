@@ -23,16 +23,16 @@ test("editar fotos acepta HTTPS y rechaza contenido ejecutable o incrustado", ()
   const next = applyAction(b, { type: "product", product: { ...b.products[0], imageUrl: "https://example.com/a.jpg" } });
   assert.equal(next.products[0].imageUrl, "https://example.com/a.jpg");
 });
-test("el código combina el número del cartel con la letra de su categoría", () => {
+test("el código muestra primero la letra de su categoría y luego el número del cartel", () => {
   const b = createDemo();
   const code = (id: string) => productCode(b.products.find((p) => p.id === id)!);
-  assert.equal(code("p1"), "1A");
-  assert.equal(code("p4"), "4A");
-  assert.equal(code("p11"), "1B");
-  assert.equal(code("p16"), "1C");
-  assert.equal(code("p21"), "1D");
-  assert.equal(code("p26"), "1E");
-  assert.equal(code("p38"), "13E");
+  assert.equal(code("p1"), "A1");
+  assert.equal(code("p4"), "A4");
+  assert.equal(code("p11"), "B1");
+  assert.equal(code("p16"), "C1");
+  assert.equal(code("p21"), "D1");
+  assert.equal(code("p26"), "E1");
+  assert.equal(code("p38"), "E13");
 });
 test("cada categoría numera desde 1 y no repite códigos", () => {
   const b = createDemo();
@@ -54,9 +54,9 @@ test("cada categoría numera desde 1 y no repite códigos", () => {
 test("la búsqueda por código ignora mayúsculas y espacios, y no hace coincidencias parciales", () => {
   const b = createDemo();
   const tarta = b.products.find((p) => p.id === "p26")!;
-  for (const q of ["1E", "1e", " 1 e ", "1  E"])
+  for (const q of ["E1", "e1", " e 1 ", "E  1", "1E", "1e", " 1 e ", "1  E"])
     assert.ok(matchesCode(tarta, q), q);
-  for (const q of ["1", "E", "11E", "1D", ""])
+  for (const q of ["1", "E", "E11", "11E", "D1", "1D", "E01", "01E", ""])
     assert.ok(!matchesCode(tarta, q), q);
 });
 test("los productos guardados sin número reciben uno sin pisar los existentes", () => {
@@ -72,7 +72,7 @@ test("los productos guardados sin número reciben uno sin pisar los existentes",
   const fixed = withProductNumbers(legacy);
   assert.deepEqual(
     fixed.products.map((p) => productCode(p)),
-    ["1C", "4C", "2C", "3C", "5C"],
+    ["C1", "C4", "C2", "C3", "C5"],
   );
   assert.equal(withProductNumbers(b), b, "sin cambios no copia el negocio");
 });

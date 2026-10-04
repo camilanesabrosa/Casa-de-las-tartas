@@ -63,10 +63,11 @@ La base vive en la carpeta de datos del usuario: en Windows,
 
 Cada producto tiene un número y su categoría aporta una letra, replicando los
 carteles del local: **A** Precocidos, **B** Congelados, **C** Pastas,
-**D** Varios, **E** Tartas. Así, `4A` es el medallón de merluza y `13E` la tarta
+**D** Varios, **E** Tartas. Así, `A4` es el medallón de merluza y `E13` la tarta
 de cebolla y queso. El número se guarda con el producto y se edita desde el
 formulario, para que borrar o reordenar artículos no descoloque el cartel
-impreso. El buscador acepta el código además del nombre.
+impreso. El buscador acepta el código además del nombre, tanto en el formato
+actual `A4` como en el anterior `4A`.
 
 ## Reglas de negocio
 
