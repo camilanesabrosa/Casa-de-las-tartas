@@ -8,7 +8,7 @@ try {
   const outfile = join(temp, "business-test.mjs");
   await build({
     stdin: {
-      contents: 'import "./tests/business.test.ts"; import "./tests/business-editing.test.ts"; import "./tests/calendar.test.ts"; import "./tests/update-ui.test.tsx"; import "./tests/daily-sales.test.tsx"; import "./tests/product-categories.test.tsx";',
+      contents: 'import "./tests/business.test.ts"; import "./tests/business-editing.test.ts"; import "./tests/calendar.test.ts"; import "./tests/update-ui.test.tsx"; import "./tests/daily-sales.test.tsx"; import "./tests/product-categories.test.tsx"; import "./tests/register-closing.test.tsx";',
       resolveDir: process.cwd(),
       loader: "ts",
     },
@@ -19,7 +19,7 @@ try {
     format: "esm",
     banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' },
   });
-  const result = spawnSync(process.execPath, ["--test", outfile, resolve("tests/updater.test.mjs"), resolve("tests/download.test.mjs"), resolve("tests/drive-backups.test.mjs")], {
+  const result = spawnSync(process.execPath, ["--test", outfile, resolve("tests/updater.test.mjs"), resolve("tests/download.test.mjs"), resolve("tests/drive-backups.test.mjs"), resolve("tests/register-clock.test.mjs")], {
     stdio: "inherit",
   });
   process.exitCode = result.status ?? 1;

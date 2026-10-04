@@ -5,6 +5,13 @@ contextBridge.exposeInMainWorld(
   "casaDesktop",
   Object.freeze({
     platform: process.platform,
+    business: Object.freeze({
+      onChange: (callback) => {
+        const listener = (_event, data) => callback(data);
+        ipcRenderer.on("casa:business:changed", listener);
+        return () => ipcRenderer.removeListener("casa:business:changed", listener);
+      },
+    }),
     updates: Object.freeze({
       getState: () => ipcRenderer.invoke("casa:updates:state"),
       check: () => ipcRenderer.invoke("casa:updates:action", "check"),

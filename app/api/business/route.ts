@@ -1,6 +1,7 @@
 import { DEMO_BUSINESS_ID } from "@/lib/demo-account";
 import { readBusiness, updateBusiness } from "@/db/business-store";
 import { z } from "zod";
+import { openRegister, registerClosingAt } from "@/lib/business";
 export const dynamic = "force-dynamic";
 const respond = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
@@ -8,7 +9,8 @@ export async function GET() {
   try {
     const data = await readBusiness(DEMO_BUSINESS_ID);
     const { completedRequests, ...safe } = data;
-    return respond(safe);
+    const open = openRegister(data);
+    return respond({ ...safe, nextRegisterCloseAt: open ? registerClosingAt(open.openedAt) : null });
   } catch (error) {
     console.error("Business read failed", error);
     return respond(

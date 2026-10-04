@@ -689,6 +689,7 @@ export function RegisterOpenEditor({
           defaultValue={0}
           hint="Si arrancás sin fondo, dejá 0."
         />
+        <p className="muted">Si te olvidás de cerrar, la caja se cierra automáticamente a las 23:59, hora de Argentina. El cierre automático guarda el saldo calculado, sin arqueo.</p>
       </Form>
     </Modal>
   );

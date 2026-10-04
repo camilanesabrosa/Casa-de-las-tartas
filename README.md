@@ -56,6 +56,16 @@ ingresos menos egresos de todos los medios de pago, no el efectivo contado ni
 el acumulado. Las aperturas no se duplican como ingresos. Los casos pendientes
 del arqueo se detallan en `docs/revision-caja.md`.
 
+Las cajas abiertas se cierran automáticamente a las 23:59, hora de Mendoza.
+El calendario identifica estos cierres y muestra el saldo calculado, sin
+efectivo contado ni diferencia de arqueo. No generan aportes ni retiros.
+Si la app estaba cerrada o la computadora apagada, el cierre se guarda al abrir
+de nuevo con la fecha y hora del corte original, sin incluir movimientos del
+día siguiente. Mientras está abierta, Electron comprueba el corte aunque la
+ventana esté minimizada y también al salir de suspensión. Entre las 23:59 y las
+00:00 no se permite abrir otra caja. El cierre manual sigue disponible antes
+del corte. Los cierres históricos ya guardados no se modifican.
+
 La base vive en la carpeta de datos del usuario: en Windows,
 `%APPDATA%\mostrador\business.sqlite`. Borrar ese archivo regenera la muestra.
 

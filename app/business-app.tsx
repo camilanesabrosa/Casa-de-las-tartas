@@ -83,13 +83,14 @@ export default function BusinessApp() {
   const [saleOpen, setSaleOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
-  const [registerOpen, setRegisterOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState<"open" | "close" | null>(null);
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const pending = useRef<{ key: string; id: string } | null>(null);
   async function reload() {
     try {
-      setData(await fetchBusiness());
+      const result = await fetchBusiness();
+      setData((previous) => !previous || result.version >= previous.version ? result : previous);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "No pudimos cargar los datos.");
@@ -102,7 +103,7 @@ export default function BusinessApp() {
     void fetchBusiness(controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) {
-          setData(result);
+          setData((previous) => !previous || result.version >= previous.version ? result : previous);
           setError("");
           window.casaDesktop?.drive?.markReady();
         }
@@ -118,6 +119,9 @@ export default function BusinessApp() {
     const id = setTimeout(() => setToast(""), 4000);
     return () => clearTimeout(id);
   }, [toast]);
+  useEffect(() => window.casaDesktop?.business?.onChange((result) => {
+    setData((previous) => !previous || result.version >= previous.version ? result : previous);
+  }), []);
   const save: Save = async (action) => {
     if (!data) throw new Error("Esperá a que se carguen los datos.");
     const key = JSON.stringify(action);
@@ -137,7 +141,7 @@ export default function BusinessApp() {
       if (r.status === 409) setError(result.error || "No pudimos guardar.");
       throw new Error(result.error || "No pudimos guardar los cambios.");
     }
-    setData(result);
+    setData((previous) => !previous || result.version >= previous.version ? result : previous);
     pending.current = null;
     setError("");
     setToast("Cambios guardados");
@@ -267,7 +271,7 @@ export default function BusinessApp() {
               </Button>
               <Button
                 className={`btn ${caja ? "register-open" : ""}`}
-                onClick={() => setRegisterOpen(true)}
+                onClick={() => setRegisterOpen(caja ? "close" : "open")}
               >
                 <Wallet />
                 {caja ? "Cerrar caja" : "Abrir caja"}
@@ -361,16 +365,15 @@ export default function BusinessApp() {
         <SaleEditor data={data} save={save} close={() => setSaleOpen(false)} />
       )}{" "}
       {cashOpen && <CashEditor save={save} close={() => setCashOpen(false)} />}
-      {registerOpen &&
-        (caja ? (
+      {registerOpen === "close" && caja ? (
           <RegisterCloseEditor
             data={data}
             save={save}
-            close={() => setRegisterOpen(false)}
+            close={() => setRegisterOpen(null)}
           />
-        ) : (
-          <RegisterOpenEditor save={save} close={() => setRegisterOpen(false)} />
-        ))}
+        ) : registerOpen === "open" ? (
+          <RegisterOpenEditor save={save} close={() => setRegisterOpen(null)} />
+        ) : null}
       {purchaseOpen && (
         <PurchaseEditor
           data={data}

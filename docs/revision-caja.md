@@ -1,5 +1,23 @@
 # Revisión de apertura y cierre de caja
 
+## Cierre automático, 4 de octubre de 2026
+
+Se agregó un corte a las 23:59 de Mendoza. El proceso principal de Electron
+comprueba la base al iniciar, al salir de suspensión y en el corte, con una
+comprobación de respaldo cada minuto. El servidor recupera cajas vencidas
+antes de leer o modificar el negocio. Las operaciones están serializadas en
+el servidor local para evitar pérdidas si un guardado coincide con el cierre.
+
+El cierre guarda `closedAt`, `expected` y `automatic`, sin inventar `counted`
+ni `difference`, y no crea movimientos de dinero. El esperado incluye todos
+los medios como el turno actual, no representa efectivo físico. La fecha del
+cierre queda en el día de apertura, aunque se ejecute al volver a abrir la app
+varios días después. El calendario indica “Sin arqueo”. La migración SQLite
+agrega una columna con valor predeterminado cero y conserva cierres anteriores.
+
+Este cambio no resuelve los hallazgos históricos de arqueo y devoluciones
+listados más abajo. No se publicó todavía un nuevo instalador con esta regla.
+
 Revisado el 20 de septiembre de 2026. Se reprodujeron los casos con datos aislados
 en memoria, sin escribir en la base del negocio. Esta revisión no modifica las
 reglas de arqueo existentes.

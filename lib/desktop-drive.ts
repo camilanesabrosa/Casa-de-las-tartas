@@ -30,6 +30,7 @@ declare global {
   interface Window {
     casaDesktop?: {
       readonly platform: string;
+      readonly business?: { onChange(callback: (data: import("./business").Business) => void): () => void };
       readonly updates: import("./desktop-updates").DesktopUpdatesAPI;
       readonly drive?: DesktopDriveAPI;
     };

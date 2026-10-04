@@ -320,7 +320,10 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     const nextDay = await updateBusiness(registerOwner, reopened.version, request, { type: "openRegister", opening: 40000 }, "2026-10-06T12:00:00.000Z");
     assert.equal(nextDay.registers.length, 2);
     const retried = await updateBusiness(registerOwner, reopened.version, request, { type: "openRegister", opening: 40000 }, "2026-10-06T12:00:00.000Z");
-    assert.deepEqual(JSON.parse(JSON.stringify(retried)), JSON.parse(JSON.stringify(nextDay)), "un reintento tampoco duplica la apertura");
+    const persistedNextDay = await readBusiness(registerOwner, "2026-10-06T12:00:00.000Z");
+    assert.deepEqual(JSON.parse(JSON.stringify(retried)), JSON.parse(JSON.stringify(persistedNextDay)), "un reintento tampoco duplica la apertura");
+    assert.equal(retried.version, nextDay.version);
+    assert.equal(retried.registers.length, 2);
     const checkDatabase = new DatabaseSync(process.env.MOSTRADOR_DATABASE_PATH);
     try {
       const row = checkDatabase.prepare("SELECT automatic, counted, difference FROM registers WHERE owner_id = ? AND id = ?").get(registerOwner, nextDay.registers[0].id);

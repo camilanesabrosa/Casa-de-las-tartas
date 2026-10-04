@@ -10,6 +10,7 @@ const {
   nativeImage,
   ipcMain,
   safeStorage,
+  powerMonitor,
 } = require("electron");
 const { fork } = require("node:child_process");
 const crypto = require("node:crypto");
@@ -24,6 +25,7 @@ const { registerUpdateIpc, CHANGED_CHANNEL, trustedSender } = require("./update-
 const { DriveBackupController } = require("./drive-backups.cjs");
 const { registerDriveIpc } = require("./drive-ipc.cjs");
 const { clientId: driveClientId, clientSecret: driveClientSecret } = require("./drive-config.cjs");
+const { RegisterClosingController } = require("./register-closing.cjs");
 
 const SERVER = join(__dirname, "..", "dist", "standalone", "server.js");
 const HOST = "127.0.0.1";
@@ -51,6 +53,7 @@ let updatePreferences;
 let removeUpdateIpc;
 let driveBackups;
 let removeDriveIpc;
+let registerClosing;
 let restoring = false;
 
 // The installer must never compete with another running copy of this app.
@@ -128,6 +131,7 @@ function setupDriveBackups(url) {
 }
 
 async function stopServerForRestore() {
+  registerClosing?.stop();
   const currentServer = server;
   server = undefined;
   if (!currentServer || currentServer.exitCode !== null) return;
@@ -201,6 +205,7 @@ async function restoreDriveBackup(fileId) {
         setupUpdates(url);
         removeDriveIpc?.();
         setupDriveBackups(url);
+        setupRegisterClosing(url);
         await window.loadURL(url);
       } catch (startError) {
         console.error("No se pudo volver a abrir la base anterior:", startError);
@@ -314,7 +319,29 @@ function createWindow(url) {
   });
   setupUpdates(url);
   setupDriveBackups(url);
+  setupRegisterClosing(url);
   void window.loadURL(url);
+}
+
+function setupRegisterClosing(url) {
+  registerClosing?.stop();
+  const origin = new URL(url).origin;
+  registerClosing = new RegisterClosingController({
+    powerMonitor,
+    read: async () => {
+      const response = await fetch(new URL("/api/business", url), { signal: AbortSignal.timeout(15_000) });
+      if (!response.ok) throw new Error("No se pudo comprobar el cierre de caja.");
+      return response.json();
+    },
+    notify: (data) => {
+      if (window && !window.isDestroyed() && trustedSender({ sender: window.webContents,
+        senderFrame: window.webContents.mainFrame }, window, origin))
+        window.webContents.send("casa:business:changed", data);
+      driveBackups?.notifyDataChanged();
+    },
+    onError: (error) => console.error("Comprobación de cierre de caja:", error),
+  });
+  registerClosing.start();
 }
 
 if (primaryInstance) app.whenReady().then(async () => {
@@ -392,6 +419,7 @@ if (primaryInstance) app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   app.isQuitting = true;
+  registerClosing?.stop();
   driveBackups?.stop();
   updates?.stop();
   removeUpdateIpc?.();

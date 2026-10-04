@@ -243,7 +243,7 @@ export function CalendarView({ data }: { data: Business }) {
         {day.registers.map((register) => (
           <div className="calendar-register" key={register.id}>
             <strong>
-              {register.closedAt ? "Caja cerrada" : "Caja abierta"}
+              {register.automatic ? "Caja cerrada automáticamente" : register.closedAt ? "Caja cerrada" : "Caja abierta"}
             </strong>
             <span>
               Apertura{" "}
@@ -251,6 +251,7 @@ export function CalendarView({ data }: { data: Business }) {
                 timeZone: "America/Argentina/Mendoza",
                 dateStyle: "short",
                 timeStyle: "short",
+                hourCycle: "h23",
               }).format(new Date(register.openedAt))}{" "}
               · {money(register.opening)}
             </span>
@@ -261,9 +262,9 @@ export function CalendarView({ data }: { data: Business }) {
                   timeZone: "America/Argentina/Mendoza",
                   dateStyle: "short",
                   timeStyle: "short",
+                  hourCycle: "h23",
                 }).format(new Date(register.closedAt))}{" "}
-                · Contado {money(register.counted ?? 0)} · Diferencia{" "}
-                {money(register.difference ?? 0)}
+                {register.automatic ? <> · Saldo calculado {money(register.expected ?? 0)} · Sin arqueo</> : <> · Contado {money(register.counted ?? 0)} · Diferencia {money(register.difference ?? 0)}</>}
               </span>
             )}
           </div>
