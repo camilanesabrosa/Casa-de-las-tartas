@@ -6,6 +6,7 @@ import {
   openRegister,
   registerExpected,
   getProductCategories,
+  getProductCategoryCodes,
 } from "./business";
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
@@ -38,6 +39,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("resetBusiness") }),
   z.object({ type: z.literal("product"), product: productSchema }),
   z.object({ type: z.literal("productCategory"), name: text }),
+  z.object({ type: z.literal("renameProductCategory"), name: text, newName: text }),
+  z.object({ type: z.literal("deleteProductCategory"), name: text, targetCategory: text.optional() }),
   z.object({ type: z.literal("productPrice"), id: text, price: amount.refine((n) => n > 0, "El precio debe ser mayor que cero.") }),
   z.object({
     type: z.literal("sale"),
@@ -123,6 +126,7 @@ export function applyAction(
   const a = actionSchema.parse(raw);
   const b = structuredClone(original);
   b.productCategories = getProductCategories(b);
+  b.productCategoryCodes = getProductCategoryCodes(b);
   const id = (prefix: string) =>
     `${prefix}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   const getProduct = (pid: string) => {
@@ -163,7 +167,13 @@ export function applyAction(
     if (existing) return existing;
     if (b.productCategories!.length >= 100) throw new Error("Podés guardar hasta 100 categorías.");
     b.productCategories!.push(name);
+    b.productCategoryCodes = getProductCategoryCodes(b);
     return name;
+  };
+  const existingCategory = (name: string) => {
+    const existing = b.productCategories!.find((category) => category.toLocaleLowerCase("es-AR") === name.toLocaleLowerCase("es-AR"));
+    if (!existing) throw new Error("No encontramos esa categoría. Actualizá los datos.");
+    return existing;
   };
   // Keep original payment dates and closed-register figures. Corrections belong
   // to today, including negative expense entries that reverse a mistaken charge.
@@ -179,6 +189,38 @@ export function applyAction(
         throw new Error("Esa categoría ya existe.");
       categoryName(a.name);
       break;
+    case "renameProductCategory": {
+      const oldName = existingCategory(a.name);
+      if (a.newName.toLocaleLowerCase("es-AR") === "todos") throw new Error('Usá otro nombre de categoría. "Todos" se usa para mostrar todos los productos.');
+      if (b.productCategories.some((name) => name !== oldName && name.toLocaleLowerCase("es-AR") === a.newName.toLocaleLowerCase("es-AR")))
+        throw new Error("Esa categoría ya existe.");
+      b.productCategories = b.productCategories.map((name) => name === oldName ? a.newName : name);
+      b.productCategoryCodes = Object.fromEntries(Object.entries(b.productCategoryCodes).map(([name, code]) => [name === oldName ? a.newName : name, code]));
+      for (const product of b.products) if (product.category === oldName) product.category = a.newName;
+      break;
+    }
+    case "deleteProductCategory": {
+      const name = existingCategory(a.name);
+      const products = b.products.filter((product) => product.category === name);
+      const target = a.targetCategory ? existingCategory(a.targetCategory) : undefined;
+      if (target === name) throw new Error("Elegí otra categoría para mover los productos.");
+      if (products.length && !target) throw new Error("Elegí la categoría donde se moverán los productos.");
+      if (target) {
+        const taken = new Set(b.products.filter((product) => product.category === target).map((product) => product.number));
+        const collisions = products.filter((product) => taken.has(product.number));
+        for (const product of products) if (!taken.has(product.number)) taken.add(product.number);
+        for (const product of collisions) {
+          let number = 1;
+          while (taken.has(number)) number++;
+          product.number = number;
+          taken.add(number);
+        }
+        for (const product of products) product.category = target;
+      }
+      b.productCategories = b.productCategories.filter((category) => category !== name);
+      b.productCategoryCodes = Object.fromEntries(Object.entries(b.productCategoryCodes).filter(([category]) => category !== name));
+      break;
+    }
     case "productPrice":
       getProduct(a.id).price = a.price;
       break;

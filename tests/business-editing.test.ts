@@ -4,8 +4,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
 import { applyAction } from "../lib/actions";
-import { createFreshBusiness, getProductCategories, productCode, matchesCode, summary, type Business } from "../lib/business";
+import { createFreshBusiness, getProductCategories, getProductCategoryCodes, categoryLetter, productCode, matchesCode, summary, type Business } from "../lib/business";
 import { dailyBalances } from "../lib/calendar";
 import { readBusiness, updateBusiness } from "../db/business-store";
 
@@ -117,9 +118,93 @@ test("cambiar milanesas de $7000 a $9000 solo cambia la siguiente venta, incluye
   assert.throws(() => applyAction(b, { type: "productPrice", id: product.id, price: 0 }));
 });
 
+test("renombrar categorías iniciales y nuevas conserva letras, productos e historial", () => {
+  let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Milanesas" });
+  const product = b.products[0];
+  b = applyAction(b, { type: "adjustStock", productId: product.id, quantity: 1000, reason: "Prueba" });
+  b = applyAction(b, { type: "sale", items: [{ productId: product.id, quantity: 500 }], method: "Efectivo" });
+  const sales = structuredClone(b.sales);
+  const before = b.products.filter((p) => p.category === "Precocidos").map((p) => ({ ...p, category: "Listos para cocinar" }));
+  b = applyAction(b, { type: "renameProductCategory", name: "Precocidos", newName: " Listos para cocinar " });
+  assert.deepEqual(b.products.filter((p) => p.category === "Listos para cocinar"), before);
+  assert.equal(categoryLetter("Listos para cocinar", getProductCategories(b), getProductCategoryCodes(b)), "A");
+  assert.equal(getProductCategories(b)[0], "Listos para cocinar");
+  assert.ok(!getProductCategories(b).includes("Precocidos"));
+  b = applyAction(b, { type: "renameProductCategory", name: "Milanesas", newName: "milanesas caseras" });
+  assert.equal(getProductCategoryCodes(b)["milanesas caseras"], "F");
+  assert.deepEqual(b.sales, sales);
+  assert.throws(() => applyAction(b, { type: "renameProductCategory", name: "Pastas", newName: "congelados" }), /ya existe/);
+  assert.throws(() => applyAction(b, { type: "renameProductCategory", name: "Pastas", newName: "Todos" }), /otro nombre/);
+  assert.throws(() => applyAction(b, { type: "renameProductCategory", name: "Inexistente", newName: "Otra" }), /No encontramos/);
+});
+
+test("eliminar una categoría vacía no la recrea ni cambia las letras de las demás", () => {
+  let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Milanesas" });
+  b = applyAction(b, { type: "productCategory", name: "Postres" });
+  const codes = getProductCategoryCodes(b);
+  b = applyAction(b, { type: "deleteProductCategory", name: "Milanesas" });
+  b = applyAction(b, { type: "expense", name: "Internet", category: "Fijo", amount: 1000, paid: false });
+  b = applyAction(b, { type: "resetBusiness" });
+  assert.ok(!getProductCategories(b).includes("Milanesas"));
+  assert.equal(getProductCategoryCodes(b).Postres, codes.Postres);
+  b = applyAction(b, { type: "productCategory", name: "Panadería" });
+  assert.equal(getProductCategoryCodes(b)["Panadería"], "H");
+});
+
+test("eliminar una categoría con productos exige un destino válido y resuelve números repetidos", () => {
+  let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Milanesas" });
+  const product = { ...b.products[0], id: undefined, category: "Milanesas", number: 1, stock: 2000, price: 700000 };
+  b = applyAction(b, { type: "product", product });
+  const first = b.products.at(-1)!;
+  b = applyAction(b, { type: "product", product: { ...product, number: 11 } });
+  const second = b.products.at(-1)!;
+  b = applyAction(b, { type: "sale", items: [{ productId: first.id, quantity: 500 }], method: "Efectivo" });
+  const sales = structuredClone(b.sales);
+  const totalStock = b.products.reduce((sum, p) => sum + p.stock, 0);
+  assert.throws(() => applyAction(b, { type: "deleteProductCategory", name: "Milanesas" }), /donde se moverán/);
+  assert.throws(() => applyAction(b, { type: "deleteProductCategory", name: "Milanesas", targetCategory: "Milanesas" }), /otra categoría/);
+  assert.throws(() => applyAction(b, { type: "deleteProductCategory", name: "Milanesas", targetCategory: "Inexistente" }), /No encontramos/);
+  b = applyAction(b, { type: "deleteProductCategory", name: "Milanesas", targetCategory: "Precocidos" });
+  const moved = b.products.find((p) => p.id === first.id)!;
+  assert.equal(moved.category, "Precocidos");
+  assert.notEqual(moved.number, 1, "resuelve un cartel repetido sin pisar el existente");
+  assert.equal(b.products.find((p) => p.id === second.id)!.number, 11, "conserva los números libres");
+  assert.equal(moved.stock, 1500);
+  assert.equal(moved.price, 700000);
+  assert.equal(b.products.reduce((sum, p) => sum + p.stock, 0), totalStock);
+  const numbers = b.products.filter((p) => p.category === "Precocidos").map((p) => p.number);
+  assert.equal(new Set(numbers).size, numbers.length);
+  assert.deepEqual(b.sales, sales);
+  assert.ok(!getProductCategories(b).includes("Milanesas"));
+});
+
+test("se pueden eliminar todas las categorías vacías y crear productos sin categorías iniciales", () => {
+  let b: Business = { ...createFreshBusiness(), products: [] };
+  for (const name of getProductCategories(b)) b = applyAction(b, { type: "deleteProductCategory", name });
+  assert.deepEqual(getProductCategories(b), []);
+  b = applyAction(b, { type: "resetBusiness" });
+  assert.deepEqual(getProductCategories(b), []);
+  b = applyAction(b, { type: "product", product: { ...createFreshBusiness().products[0], id: undefined, category: "Nueva", stock: 0 } });
+  assert.deepEqual(getProductCategories(b), ["Nueva"]);
+  assert.equal(getProductCategoryCodes(b).Nueva, "A");
+});
+
+test("las letras siguen siendo únicas después de Z y admiten nombres especiales", () => {
+  let b = createFreshBusiness();
+  for (let index = 0; index < 23; index++) b = applyAction(b, { type: "productCategory", name: `Categoría ${index}` });
+  assert.equal(getProductCategoryCodes(b)["Categoría 22"], "AB");
+  b = applyAction(b, { type: "renameProductCategory", name: "Categoría 22", newName: "__proto__" });
+  assert.equal(getProductCategoryCodes(b).__proto__, "AB");
+  assert.equal(new Set(Object.values(getProductCategoryCodes(b))).size, getProductCategories(b).length);
+});
+
 test("SQLite conserva categorías vacías, gastos editados y precios históricos al volver a leer", async () => {
   const directory = await mkdtemp(join(tmpdir(), "cdt-editing-test-"));
   process.env.MOSTRADOR_DATABASE_PATH = join(directory, "business.sqlite");
+  // Simulate an installed version whose category table predates editable codes.
+  const legacyDatabase = new DatabaseSync(process.env.MOSTRADOR_DATABASE_PATH);
+  legacyDatabase.exec("CREATE TABLE product_categories (owner_id TEXT NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, PRIMARY KEY (owner_id, name))");
+  legacyDatabase.close();
   const owner = "editing-tests";
   let b: Business = await readBusiness(owner);
   const save = async (action: unknown) => {
@@ -147,8 +232,21 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     assert.equal(b.products[0].price, 900000);
     assert.equal(b.sales[0].items[0].price, 700000);
     assert.equal(b.sales[0].total, 700000);
+    const previousSales = structuredClone(b.sales);
+    await save({ type: "renameProductCategory", name: "Precocidos", newName: "Listos" });
+    assert.equal(getProductCategoryCodes(b).Listos, "A");
+    assert.equal(b.products.find((p) => p.id === id)!.category, "Listos");
+    assert.ok(!getProductCategories(b).includes("Precocidos"));
+    await save({ type: "deleteProductCategory", name: "Congelados", targetCategory: "Listos" });
+    assert.ok(!getProductCategories(b).includes("Congelados"));
+    assert.equal(getProductCategoryCodes(b).Pastas, "C");
+    assert.deepEqual(b.sales, previousSales);
     await save({ type: "resetBusiness" });
     assert.ok(getProductCategories(b).includes("Panadería"));
+    await save({ type: "deleteProductCategory", name: "Panadería" });
+    await save({ type: "productCategory", name: "Postres" });
+    assert.ok(!getProductCategories(b).includes("Panadería"));
+    assert.equal(getProductCategoryCodes(b).Pastas, "C");
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

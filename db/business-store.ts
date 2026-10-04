@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { createFreshBusiness, getProductCategories, withProductNumbers, withRegisters, type Business } from "@/lib/business";
+import { createFreshBusiness, getProductCategories, getProductCategoryCodes, withProductNumbers, withRegisters, type Business } from "@/lib/business";
 import { applyAction } from "@/lib/actions";
 
 type Stored = Business & { completedRequests?: string[] };
@@ -12,7 +12,7 @@ function db() {
 // All editable business data lives in local SQLite tables. `businesses` remains
 // only as a one-time import source for installations from the JSON prototype.
 const tables = [
-  `CREATE TABLE IF NOT EXISTS product_categories (owner_id TEXT NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, PRIMARY KEY (owner_id, name))`,
+  `CREATE TABLE IF NOT EXISTS product_categories (owner_id TEXT NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, code TEXT, PRIMARY KEY (owner_id, name))`,
   `CREATE TABLE IF NOT EXISTS business_meta (owner_id TEXT PRIMARY KEY NOT NULL, revision INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL, whatsapp TEXT NOT NULL, address TEXT NOT NULL, completed_requests TEXT NOT NULL DEFAULT '[]', updated_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS products (owner_id TEXT NOT NULL, id TEXT NOT NULL, number INTEGER NOT NULL, name TEXT NOT NULL, variety TEXT NOT NULL, category TEXT NOT NULL, unit TEXT NOT NULL, price INTEGER NOT NULL, cost INTEGER NOT NULL, stock INTEGER NOT NULL, minimum INTEGER NOT NULL, published INTEGER NOT NULL, image_url TEXT, PRIMARY KEY (owner_id, id))`,
   `CREATE TABLE IF NOT EXISTS suppliers (owner_id TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL, PRIMARY KEY (owner_id, id))`,
@@ -27,7 +27,12 @@ const tables = [
 ];
 let schemaReady: Promise<void> | undefined;
 async function ensureSchema() {
-  schemaReady ??= db().batch(tables.map((sql) => db().prepare(sql).bind())).then(() => undefined);
+  schemaReady ??= (async () => {
+    await db().batch(tables.map((sql) => db().prepare(sql).bind()));
+    const columns = await db().prepare("PRAGMA table_info(product_categories)").all<{ name: string }>();
+    if (!columns.results.some((column) => column.name === "code"))
+      await db().prepare("ALTER TABLE product_categories ADD COLUMN code TEXT").run();
+  })();
   return schemaReady;
 }
 async function first<T>(sql: string, ...values: unknown[]) { return db().prepare(sql).bind(...values).first<T>(); }
@@ -35,19 +40,21 @@ async function first<T>(sql: string, ...values: unknown[]) { return db().prepare
 async function load(ownerId: string): Promise<Stored | undefined> {
   const meta = await first<{ revision: number; name: string; whatsapp: string; address: string; completed_requests: string }>("SELECT revision, name, whatsapp, address, completed_requests FROM business_meta WHERE owner_id = ?", ownerId);
   if (!meta) return undefined;
-  const categoryRows = await db().prepare("SELECT name FROM product_categories WHERE owner_id = ? ORDER BY position").bind(ownerId).all<{ name: string }>();
+  const categoryRows = await db().prepare("SELECT name, code FROM product_categories WHERE owner_id = ? ORDER BY position").bind(ownerId).all<{ name: string; code: string | null }>();
   const [products, suppliers, sales, purchases, expenses, movements, payments, registers, items] = await Promise.all([
     db().prepare("SELECT id, number, name, variety, category, unit, price, cost, stock, minimum, published, image_url FROM products WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, name, phone FROM suppliers WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, total, method, cancelled FROM sales WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, supplier_id, product_id, quantity, total, paid FROM purchases WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, name, category, amount, paid FROM expenses WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, product_id, quantity, reason FROM movements WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, amount, kind, reference FROM payments WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, opened_at, opening, closed_at, counted, expected, difference FROM registers WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT sale_id, position, product_id, name, quantity, unit, price, cost FROM sale_items WHERE owner_id = ? ORDER BY sale_id, position").bind(ownerId).all(),
   ]);
   const productCategories = categoryRows.results.map((category) => category.name);
+  const productCategoryCodes = Object.fromEntries(categoryRows.results.filter((category) => category.code).map((category) => [category.name, category.code!])) as Record<string, string>;
   const grouped = new Map<string, any[]>();
   for (const i of items.results as any[]) grouped.set(i.sale_id, [...(grouped.get(i.sale_id) || []), { productId: i.product_id, name: i.name, quantity: i.quantity, unit: i.unit, price: i.price, cost: i.cost }]);
-  return { version: meta.revision, productCategories, settings: { name: meta.name, whatsapp: meta.whatsapp, address: meta.address }, products: (products.results as any[]).map((p) => ({ id: p.id, number: p.number, name: p.name, variety: p.variety, category: p.category, unit: p.unit, price: p.price, cost: p.cost, stock: p.stock, minimum: p.minimum, published: Boolean(p.published), ...(p.image_url ? { imageUrl: p.image_url } : {}) })), suppliers: suppliers.results as any[], sales: (sales.results as any[]).map((s) => ({ id: s.id, date: s.date, total: s.total, method: s.method, cancelled: Boolean(s.cancelled), items: grouped.get(s.id) || [] })), purchases: (purchases.results as any[]).map((p) => ({ id: p.id, date: p.date, supplierId: p.supplier_id, productId: p.product_id, quantity: p.quantity, total: p.total, paid: p.paid })), expenses: (expenses.results as any[]).map((e) => ({ id: e.id, date: e.date, name: e.name, category: e.category, amount: e.amount, paid: Boolean(e.paid) })), movements: (movements.results as any[]).map((m) => ({ id: m.id, date: m.date, productId: m.product_id, quantity: m.quantity, reason: m.reason })), payments: payments.results as any[], registers: (registers.results as any[]).map((r) => ({ id: r.id, openedAt: r.opened_at, opening: r.opening, ...(r.closed_at ? { closedAt: r.closed_at, counted: r.counted, expected: r.expected, difference: r.difference } : {}) })), completedRequests: JSON.parse(meta.completed_requests || "[]") };
+  return { version: meta.revision, productCategories, productCategoryCodes, settings: { name: meta.name, whatsapp: meta.whatsapp, address: meta.address }, products: (products.results as any[]).map((p) => ({ id: p.id, number: p.number, name: p.name, variety: p.variety, category: p.category, unit: p.unit, price: p.price, cost: p.cost, stock: p.stock, minimum: p.minimum, published: Boolean(p.published), ...(p.image_url ? { imageUrl: p.image_url } : {}) })), suppliers: suppliers.results as any[], sales: (sales.results as any[]).map((s) => ({ id: s.id, date: s.date, total: s.total, method: s.method, cancelled: Boolean(s.cancelled), items: grouped.get(s.id) || [] })), purchases: (purchases.results as any[]).map((p) => ({ id: p.id, date: p.date, supplierId: p.supplier_id, productId: p.product_id, quantity: p.quantity, total: p.total, paid: p.paid })), expenses: (expenses.results as any[]).map((e) => ({ id: e.id, date: e.date, name: e.name, category: e.category, amount: e.amount, paid: Boolean(e.paid) })), movements: (movements.results as any[]).map((m) => ({ id: m.id, date: m.date, productId: m.product_id, quantity: m.quantity, reason: m.reason })), payments: payments.results as any[], registers: (registers.results as any[]).map((r) => ({ id: r.id, openedAt: r.opened_at, opening: r.opening, ...(r.closed_at ? { closedAt: r.closed_at, counted: r.counted, expected: r.expected, difference: r.difference } : {}) })), completedRequests: JSON.parse(meta.completed_requests || "[]") };
 }
 
 function replaceStatements(ownerId: string, b: Stored): Statement[] {
+  const categoryCodes = getProductCategoryCodes(b);
   const categoryStatements = [db().prepare("DELETE FROM product_categories WHERE owner_id = ?").bind(ownerId),
-    ...getProductCategories(b).map((name, position) => db().prepare("INSERT INTO product_categories (owner_id, position, name) VALUES (?, ?, ?)").bind(ownerId, position, name))];
+    ...getProductCategories(b).map((name, position) => db().prepare("INSERT INTO product_categories (owner_id, position, name, code) VALUES (?, ?, ?, ?)").bind(ownerId, position, name, categoryCodes[name]))];
   const out: Statement[] = [...["products", "suppliers", "sales", "sale_items", "purchases", "expenses", "movements", "payments", "registers"].map((table) => db().prepare(`DELETE FROM ${table} WHERE owner_id = ?`).bind(ownerId)), db().prepare("INSERT INTO business_meta (owner_id, revision, name, whatsapp, address, completed_requests, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(owner_id) DO UPDATE SET revision = excluded.revision, name = excluded.name, whatsapp = excluded.whatsapp, address = excluded.address, completed_requests = excluded.completed_requests, updated_at = excluded.updated_at").bind(ownerId, b.version, b.settings.name, b.settings.whatsapp, b.settings.address, JSON.stringify(b.completedRequests || []), new Date().toISOString())];
   for (const p of b.products) out.push(db().prepare("INSERT INTO products (owner_id, id, number, name, variety, category, unit, price, cost, stock, minimum, published, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(ownerId, p.id, p.number, p.name, p.variety, p.category, p.unit, p.price, p.cost, p.stock, p.minimum, p.published ? 1 : 0, p.imageUrl || null));
   for (const s of b.suppliers) out.push(db().prepare("INSERT INTO suppliers (owner_id, id, name, phone) VALUES (?, ?, ?, ?)").bind(ownerId, s.id, s.name, s.phone));

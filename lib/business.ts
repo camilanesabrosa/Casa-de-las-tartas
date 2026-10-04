@@ -74,6 +74,7 @@ export type Business = {
   settings: { name: string; whatsapp: string; address: string };
   products: Product[];
   productCategories?: string[];
+  productCategoryCodes?: Record<string, string>;
   sales: Sale[];
   suppliers: Supplier[];
   purchases: Purchase[];
@@ -90,7 +91,7 @@ export const categories = [
   "Tartas",
 ] as const;
 export function getProductCategories(b: Pick<Business, "products" | "productCategories">): string[] {
-  const names = [...categories, ...(b.productCategories || []), ...b.products.map((p) => p.category)];
+  const names = [...(b.productCategories ?? categories), ...b.products.map((p) => p.category)];
   const seen = new Set<string>();
   return names.filter((name) => {
     const key = name.trim().toLocaleLowerCase("es-AR");
@@ -99,8 +100,8 @@ export function getProductCategories(b: Pick<Business, "products" | "productCate
     return true;
   });
 }
-export const categoryLetter = (category: string, names: readonly string[] = categories) => {
-  let index = names.findIndex((name) => name.toLocaleLowerCase("es-AR") === category.toLocaleLowerCase("es-AR")) + 1;
+const letterForIndex = (position: number) => {
+  let index = position;
   let code = "";
   while (index > 0) {
     index--;
@@ -109,10 +110,35 @@ export const categoryLetter = (category: string, names: readonly string[] = cate
   }
   return code;
 };
-export const productCode = (p: Pick<Product, "number" | "category">, names: readonly string[] = categories) =>
-  `${p.number}${categoryLetter(p.category, names)}`;
-export const matchesCode = (p: Pick<Product, "number" | "category">, q: string, names: readonly string[] = categories) =>
-  productCode(p, names).toLowerCase() === q.trim().toLowerCase().replace(/\s+/g, "");
+export function getProductCategoryCodes(b: Pick<Business, "products" | "productCategories" | "productCategoryCodes">): Record<string, string> {
+  const names = getProductCategories(b);
+  const saved = b.productCategoryCodes || {};
+  const entries: [string, string][] = [];
+  const used = new Set<string>();
+  let highest = 0;
+  for (const name of names) {
+    const code = Object.hasOwn(saved, name) ? saved[name] : undefined;
+    if (!code || !/^[A-Z]{1,3}$/.test(code) || used.has(code)) continue;
+    entries.push([name, code]);
+    used.add(code);
+    highest = Math.max(highest, [...code].reduce((index, letter) => index * 26 + letter.charCodeAt(0) - 64, 0));
+  }
+  for (const name of names) {
+    if (entries.some(([existing]) => existing === name)) continue;
+    const code = letterForIndex(++highest);
+    entries.push([name, code]);
+  }
+  return Object.fromEntries(entries);
+}
+export const categoryLetter = (category: string, names: readonly string[] = categories, codes?: Record<string, string>) => {
+  const index = names.findIndex((name) => name.toLocaleLowerCase("es-AR") === category.toLocaleLowerCase("es-AR"));
+  const name = names[index];
+  return codes && Object.hasOwn(codes, name) ? codes[name] : letterForIndex(index + 1);
+};
+export const productCode = (p: Pick<Product, "number" | "category">, names: readonly string[] = categories, codes?: Record<string, string>) =>
+  `${p.number}${categoryLetter(p.category, names, codes)}`;
+export const matchesCode = (p: Pick<Product, "number" | "category">, q: string, names: readonly string[] = categories, codes?: Record<string, string>) =>
+  productCode(p, names, codes).toLowerCase() === q.trim().toLowerCase().replace(/\s+/g, "");
 const hasNumber = (p: Product) => Number.isInteger(p.number) && p.number > 0;
 // Los documentos guardados antes del cartel numerado no traen `number`.
 // Se completa por orden de aparición sin pisar los números ya asignados.
