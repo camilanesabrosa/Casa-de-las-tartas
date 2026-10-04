@@ -74,6 +74,29 @@ test("categorías: precios históricos y redondeo por gramos, no precios del cat
   assert.equal(result.rows[0].grams, 333);
 });
 
+test("categorías: ordena de más a menos cobrado y recalcula el ranking al cambiar el período", () => {
+  const data = fixture();
+  const original = data.sales[0];
+  const milanesas = original.items[0];
+  const tarta = original.items[1];
+  data.productCategories = ["Tartas", "Pastas", "Congelados"];
+  data.sales = [
+    { ...original, id: "SEPTIEMBRE", date: "2026-09-28T15:00:00Z", total: 1800000, items: [{ ...milanesas, quantity: 2000 }] },
+    { ...original, id: "OCTUBRE", date: "2026-10-01T15:00:00Z", total: 1500000, items: [{ ...tarta, quantity: 5000 }] },
+    { ...original, id: "HOY", date: "2026-10-04T15:00:00Z", total: 1200000, items: [{ ...milanesas, quantity: 1000 }, { ...tarta, quantity: 1000 }] },
+  ];
+  for (const period of ["day", "week", "month"] as const) {
+    const rows = categorySalesSummary(data, period, today, today).rows;
+    assert.deepEqual(rows.map((row) => row.name), period === "month"
+      ? ["Tartas", "Congelados", "Pastas"] : ["Congelados", "Tartas", "Pastas"]);
+    assert.equal(rows.at(-1)?.amount, 0, "las categorías sin ventas quedan al final");
+    assert.ok(rows.every((row, index) => index === 0 || rows[index - 1].amount >= row.amount));
+  }
+  data.sales = [];
+  assert.deepEqual(categorySalesSummary(data, "day", today, today).rows.map((row) => row.name),
+    ["Congelados", "Pastas", "Tartas"], "a igual importe desempata por nombre");
+});
+
 test("categorías: interfaz con Día/Semana/Mes, importe exacto por categoría y categorías en cero", () => {
   const html = renderToStaticMarkup(<CategorySales data={fixture()} today={today} />);
   for (const label of ["Ventas por categoría", "Día", "Semana", "Mes", "Fecha de referencia", "Cantidad vendida", "Congelados", "Tartas", "Pastas", "4 kg", "4 un.", "Sin ventas", money(3600000), money(1000000), money(4600000)]) assert.ok(html.includes(label), label);
