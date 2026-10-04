@@ -1777,3 +1777,15 @@ td small {
   background: var(--red-light);
   color: var(--red);
 }
+.row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.expense-delete {
+  color: var(--red);
+}
+.expense-delete:hover {
+  text-decoration: underline;
+}

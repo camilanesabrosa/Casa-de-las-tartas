@@ -18,8 +18,6 @@ import {
   Package,
   History,
   ArrowDownToLine,
-  Check,
-  Phone,
   ArrowRight,
   CalendarDays,
   Trash2,
@@ -34,8 +32,7 @@ import {
   money,
   quantityLabel,
   summary,
-  lineTotal,
-  categories,
+  getProductCategories,
   categoryLetter,
   productCode,
   matchesCode,
@@ -43,6 +40,8 @@ import {
 import {
   type Save,
   ProductEditor,
+  CategoryEditor,
+  PriceEditor,
   StockEditor,
   PurchaseEditor,
   ExpenseEditor,
@@ -62,11 +61,14 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [stock, setStock] = useState<Product | null>(null);
   const [history, setHistory] = useState<Product | null>(null);
+  const [newCategory, setNewCategory] = useState(false);
+  const [price, setPrice] = useState<Product | null>(null);
+  const categoryNames = getProductCategories(data);
   const products = data.products.filter(
     (p) =>
       (category === "Todos" || p.category === category) &&
       (!low || p.stock <= p.minimum) &&
-      (matchesCode(p, q) ||
+      (matchesCode(p, q, categoryNames) ||
         `${p.name} ${p.variety}`.toLowerCase().includes(q.toLowerCase())),
   );
   return (
@@ -82,6 +84,10 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           />
         </div>
         <div className="button-group">
+          <Button className="btn" onClick={() => setNewCategory(true)}>
+            <Plus />
+            Nueva categoría
+          </Button>
           <Button className="btn" onClick={() => downloadCSV(data)}>
             <Download />
             Exportar
@@ -95,9 +101,9 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
       <div className="filter-row">
         <Tabs value={category} onValueChange={setCategory}>
           <TabsList className="filter-tabs">
-            {["Todos", ...categories].map((c) => (
+            {["Todos", ...categoryNames].map((c) => (
               <TabsTrigger key={c} value={c}>
-                {c === "Todos" ? c : `${c} · ${categoryLetter(c)}`}
+                {c === "Todos" ? c : `${c} · ${categoryLetter(c, categoryNames)}`}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -135,7 +141,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
               {products.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <span className="product-code">{productCode(p)}</span>
+                    <span className="product-code">{productCode(p, categoryNames)}</span>
                   </TableCell>
                   <TableCell>
                     <button
@@ -164,9 +170,15 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
                     {!p.published && <small>Oculto del catálogo</small>}
                   </TableCell>
                   <TableCell>
-                    <div className="button-group">
+                    <div className="row-actions">
+                      <button className="text-link" onClick={() => setPrice(p)} aria-label={`Cambiar precio de ${p.name} ${p.variety}`}>
+                        Cambiar precio
+                      </button>
+                      <button className="text-link" onClick={() => setEditing(p)} aria-label={`Editar ${p.name} ${p.variety}`}>
+                        Editar
+                      </button>
                       <button className="text-link" onClick={() => setStock(p)}>
-                        Ajustar
+                        Ajustar stock
                       </button>
                       <button
                         className="icon-button"
@@ -201,12 +213,15 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
         )}
       </section>
       <p className="footnote">
-        Los precios y las existencias iniciales son de ejemplo. Los nombres
-        provienen del listado del negocio.
+        Los cambios de precio se aplican a las próximas ventas. Las ventas anteriores conservan sus importes.
       </p>
+      {newCategory ? <CategoryEditor save={save} close={() => setNewCategory(false)} /> : null}
+      {price ? <PriceEditor product={price} save={save} close={() => setPrice(null)} /> : null}
       {editing && (
         <ProductEditor
           product={editing === "new" ? undefined : editing}
+          categoryNames={categoryNames}
+          initialCategory={category === "Todos" ? "Pastas" : category}
           save={save}
           close={() => setEditing(null)}
         />
@@ -473,6 +488,8 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
   const [section, setSection] = useState("gastos");
   const [add, setAdd] = useState(false);
   const [pay, setPay] = useState<Business["expenses"][number] | null>(null);
+  const [editing, setEditing] = useState<Business["expenses"][number] | null>(null);
+  const [removing, setRemoving] = useState<Business["expenses"][number] | null>(null);
   const [filter, setFilter] = useState("Todos");
   const items = data.expenses.filter(
     (e) =>
@@ -543,14 +560,18 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {!e.paid && (
-                            <button
-                              className="text-link"
-                              onClick={() => setPay(e)}
-                            >
-                              Marcar como pagado
-                            </button>
-                          )}
+                          <div className="row-actions">
+                            <button className="text-link" onClick={() => setEditing(e)} aria-label={`Editar gasto ${e.name}`}>Editar</button>
+                            <button className="text-link expense-delete" onClick={() => setRemoving(e)} aria-label={`Eliminar gasto ${e.name}`}>Eliminar</button>
+                            {!e.paid && (
+                              <button
+                                className="text-link"
+                                onClick={() => setPay(e)}
+                              >
+                                Marcar como pagado
+                              </button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -564,7 +585,15 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
               </div>
             )}
           </section>
-          {add && <ExpenseEditor save={save} close={() => setAdd(false)} />}{" "}
+          {add && <ExpenseEditor initialCategory={filter === "Fijo" ? "Fijo" : "Variable"} initialPaid={filter !== "Pendientes"} save={save} close={() => setAdd(false)} />}{" "}
+          {editing ? <ExpenseEditor expense={editing} save={save} close={() => setEditing(null)} /> : null}
+          {removing ? (
+            <Modal title="Eliminar gasto" description={`${removing.name} · ${money(removing.amount)}`} close={() => setRemoving(null)}>
+              <Form close={() => setRemoving(null)} label="Eliminar gasto" destructive submit={() => save({ type: "deleteExpense", id: removing.id })}>
+                <p>El gasto se quitará de la lista. {removing.paid ? "Se corregirá el saldo de hoy para deshacer su importe pagado. Los cierres anteriores se conservan." : "Ya no quedará como deuda pendiente."}</p>
+              </Form>
+            </Modal>
+          ) : null}
           {pay && (
             <Modal
               title="Pagar gasto"

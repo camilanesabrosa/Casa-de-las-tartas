@@ -26,6 +26,7 @@ import {
   type Business,
   type Product,
   type Sale,
+  type Expense,
   money,
   quantityLabel,
   lineTotal,
@@ -145,11 +146,13 @@ export function Form({
   submit,
   label = "Guardar",
   close,
+  destructive = false,
 }: {
   children: ReactNode;
   submit: (f: FormData) => Promise<void>;
   label?: string;
   close: () => void;
+  destructive?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -178,7 +181,7 @@ export function Form({
         <Button type="button" className="btn" onClick={close} disabled={busy}>
           Cancelar
         </Button>
-        <Button type="submit" className="btn primary" disabled={busy}>
+        <Button type="submit" className={`btn ${destructive ? "danger" : "primary"}`} disabled={busy}>
           {busy ? "Guardando…" : label}
         </Button>
       </div>
@@ -190,15 +193,20 @@ const num = (f: FormData, k: string) => Number(f.get(k));
 const cents = (f: FormData, k: string) => Math.round(num(f, k) * 100);
 export function ProductEditor({
   product,
+  categoryNames = categories,
+  initialCategory = "Pastas",
   save,
   close,
 }: {
   product?: Product;
+  categoryNames?: readonly string[];
+  initialCategory?: string;
   save: Save;
   close: () => void;
 }) {
   const [unit, setUnit] = useState(product?.unit || "unit");
-  const [category, setCategory] = useState(product?.category || "Pastas");
+  const [category, setCategory] = useState(product?.category || initialCategory);
+  const [newCategory, setNewCategory] = useState("");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   const [productName, setProductName] = useState(product?.name || "");
   const [variety, setVariety] = useState(product?.variety || "");
@@ -219,7 +227,7 @@ export function ProductEditor({
               number: num(f, "number"),
               name: string(f, "name"),
               variety: string(f, "variety"),
-              category,
+              category: category === "__new__" ? newCategory.trim() : category,
               unit,
               price: cents(f, "price"),
               cost: cents(f, "cost"),
@@ -256,12 +264,20 @@ export function ProductEditor({
           </datalist>
         </label>
         <div className="form-grid">
-          <Choice
-            label="Categoría"
-            value={category}
-            onChange={setCategory}
-            options={categories.map((value) => ({ value, label: value }))}
-          />
+          <label className="field">
+            <span>Categoría</span>
+            <select className="field-input choice" value={category} onChange={(event) => setCategory(event.target.value)}>
+              {categoryNames.map((name) => <option key={name} value={name}>{name}</option>)}
+              <option value="__new__">Crear una nueva categoría…</option>
+            </select>
+          </label>
+          {category === "__new__" ? (
+            <label className="field">
+              <span>Nombre de la nueva categoría</span>
+              <Input className="field-input" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} required maxLength={160} />
+              <small>Se guardará junto con este producto.</small>
+            </label>
+          ) : null}
           <label className="field">
             <span>Número del cartel</span>
             <Input
@@ -277,7 +293,7 @@ export function ProductEditor({
             <small>
               Código para el buscador:{" "}
               <strong>
-                {number ? `${number}${categoryLetter(category)}` : "—"}
+                {number ? `${number}${categoryLetter(category === "__new__" ? newCategory.trim() : category, category === "__new__" ? [...categoryNames, newCategory.trim()] : categoryNames)}` : "—"}
               </strong>
             </small>
           </label>
@@ -309,6 +325,7 @@ export function ProductEditor({
             step="0.01"
             min={0.01}
             defaultValue={(product?.price || 0) / 100}
+            hint="Se aplica a las próximas ventas. Las ventas anteriores conservan su precio."
           />
           <Field
             label={`Costo por ${unit === "kg" ? "kg" : "unidad"} · $`}
@@ -356,6 +373,26 @@ export function ProductEditor({
           />
           Mostrar en el catálogo
         </label>
+      </Form>
+    </Modal>
+  );
+}
+export function CategoryEditor({ save, close }: { save: Save; close: () => void }) {
+  return (
+    <Modal title="Nueva categoría de productos" description="Creá una categoría para agrupar tus productos." close={close}>
+      <Form close={close} label="Crear categoría" submit={(f) => save({ type: "productCategory", name: string(f, "name") })}>
+        <Field label="Nombre de la categoría" name="name" />
+      </Form>
+    </Modal>
+  );
+}
+export function PriceEditor({ product, save, close }: { product: Product; save: Save; close: () => void }) {
+  return (
+    <Modal title="Cambiar precio" description={[product.name, product.variety].filter(Boolean).join(" · ")} close={close}>
+      <Form close={close} label="Guardar precio" submit={(f) => save({ type: "productPrice", id: product.id, price: cents(f, "price") })}>
+        <p>Precio actual: <strong>{money(product.price)} por {product.unit === "kg" ? "kilo" : "unidad"}</strong>.</p>
+        <Field label={`Nuevo precio por ${product.unit === "kg" ? "kilo" : "unidad"} · $`} name="price" type="number" step="0.01" min={0.01} defaultValue={product.price / 100} />
+        <p className="muted">Las ventas anteriores conservan el precio que tenían. Este precio se usará en las próximas ventas.</p>
       </Form>
     </Modal>
   );
@@ -507,54 +544,56 @@ export function PurchaseEditor({
   );
 }
 export function ExpenseEditor({
+  expense,
+  initialCategory = "Variable",
+  initialPaid = true,
   save,
   close,
 }: {
+  expense?: Expense;
+  initialCategory?: Expense["category"];
+  initialPaid?: boolean;
   save: Save;
   close: () => void;
 }) {
-  const [category, setCategory] = useState<"Fijo" | "Variable">("Variable");
   return (
     <Modal
-      title="Registrar gasto"
-      description="Anotá el gasto aunque todavía no lo hayas pagado."
+      title={expense ? "Editar gasto" : "Registrar gasto"}
+      description={expense ? "Corregí los datos del gasto. Si cambia lo pagado, se ajustará el saldo de hoy." : "Anotá el gasto aunque todavía no lo hayas pagado."}
       close={close}
     >
       <Form
         close={close}
-        label="Registrar gasto"
+        label={expense ? "Guardar cambios" : "Registrar gasto"}
         submit={(f) =>
           save({
             type: "expense",
+            id: expense?.id,
             name: string(f, "name"),
-            category,
+            category: string(f, "category") as Expense["category"],
             amount: cents(f, "amount"),
             paid: f.get("paid") === "on",
           })
         }
       >
-        <Field label="¿En qué gastaste?" name="name" />
-        <Choice
-          label="Tipo de gasto"
-          value={category}
-          onChange={(v) => setCategory(v as "Fijo" | "Variable")}
-          options={[
-            { value: "Fijo", label: "Fijo · alquiler, internet, servicios" },
-            {
-              value: "Variable",
-              label: "Variable · envases, reparaciones, otros",
-            },
-          ]}
-        />
+        <Field label="¿En qué gastaste?" name="name" defaultValue={expense?.name} />
+        <label className="field">
+          <span>Tipo de gasto</span>
+          <select className="field-input choice" name="category" defaultValue={expense?.category || initialCategory}>
+            <option value="Fijo">Fijo · alquiler, internet, servicios</option>
+            <option value="Variable">Variable · envases, reparaciones, otros</option>
+          </select>
+        </label>
         <Field
           label="Importe · $"
           name="amount"
           type="number"
           min={0.01}
           step="0.01"
+          defaultValue={expense ? expense.amount / 100 : ""}
         />
         <label className="check-field">
-          <input name="paid" type="checkbox" defaultChecked />
+          <input name="paid" type="checkbox" defaultChecked={expense?.paid ?? initialPaid} />
           Ya lo pagué
         </label>
       </Form>
@@ -712,10 +751,10 @@ export function RegisterCloseEditor({
               <strong className="negative">−{money(d.purchases)}</strong>
             </div>
           )}
-          {d.expenses > 0 && (
+          {d.expenses !== 0 && (
             <div>
-              <span>Gastos pagados</span>
-              <strong className="negative">−{money(d.expenses)}</strong>
+              <span>{d.expenses < 0 ? "Correcciones de gastos" : "Gastos pagados"}</span>
+              <strong className={d.expenses > 0 ? "negative" : "positive"}>{money(-d.expenses)}</strong>
             </div>
           )}
           <div className="register-expected">

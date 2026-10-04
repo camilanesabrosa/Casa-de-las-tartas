@@ -148,7 +148,7 @@ export function DriveBackupSettings({ drive }: { drive: DriveControls }) {
           {!state?.restoreDecisionRequired ? (
             <Button className="btn primary" disabled={working} onClick={() => void run("backup")}>
               <Download aria-hidden="true" />
-              {busy === "backup" || state.busy === "backup" ? "Guardando respaldo…" : "Crear respaldo ahora"}
+              {busy === "backup" || state?.busy === "backup" ? "Guardando respaldo…" : "Crear respaldo ahora"}
             </Button>
           ) : null}
           <Button className="btn" disabled={working} onClick={() => void openRestore()}>
