@@ -40,7 +40,7 @@ La app consulta `https://sinnick.dev/cdt/update/latest.yml`.
 }
 ```
 
-La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.2.2.
+La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.3.0.
 La página de descarga es [sinnick.dev/cdt/](https://sinnick.dev/cdt/). Los archivos
 viven en `/var/www/cdt-download/`, separados del sitio principal y de Wiener.
 La configuración y el respaldo de Nginx están documentados en
@@ -78,6 +78,17 @@ actualizó atómicamente como último paso. SHA-256 del instalador:
 
 ```text
 e1b8c34fbcbe25d0e00e1503f181e0ce63fcb71843191f5884d22d5373aa282d
+```
+
+La versión 0.3.0 se publicó el 4 de octubre de 2026. Incluye las correcciones
+de gastos, edición y eliminación de gastos, gestión de categorías de productos,
+cambio de precios sin alterar ventas anteriores y códigos con la letra primero.
+El instalador completo descargado por HTTPS coincide con su tamaño y hashes
+SHA-256 y SHA-512. El manifiesto se publicó atómicamente al final y se conservaron
+las versiones anteriores. SHA-256 del instalador 0.3.0:
+
+```text
+7628fdfd3f9058d3b38cf5798e823a8a9c6a3fa578cc11a2a6915faef0c49889
 ```
 
 El script de empaquetado tiene `--publish never`: genera los archivos pero **no

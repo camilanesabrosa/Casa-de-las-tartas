@@ -60,8 +60,32 @@ el HTML. Las descargas admiten rangos HTTP para el actualizador.
 La primera publicación se preparó completa en un directorio privado, se
 verificaron los cuatro archivos y luego se habilitó la ruta pública.
 
-La versión actual es 0.2.2, publicada el 28 de septiembre de 2026. Se
+La versión actual es 0.3.0, publicada el 4 de octubre de 2026. Se
 conservaron los instaladores y blockmaps anteriores para las instalaciones existentes.
+
+## Verificación de 0.3.0
+
+El instalador Windows x64 tiene 208.979.328 bytes. Se compararon los hashes
+SHA-256 de la página, el instalador, el blockmap y el manifiesto después de
+subirlos al directorio privado `/root/cdt-0.3.0.toFh6TuK/`. Ese directorio
+conserva también `previous-index.html` y `previous-latest.yml` para recuperar
+la publicación anterior si fuese necesario.
+
+Se descargó el instalador completo por HTTPS y coincidieron su tamaño,
+SHA-256 y SHA-512. SHA-256:
+
+```text
+7628fdfd3f9058d3b38cf5798e823a8a9c6a3fa578cc11a2a6915faef0c49889
+```
+
+Se verificaron las respuestas HTTP por rangos y el blockmap público antes de
+publicar `latest.yml` atómicamente como último paso. Los permisos son `0644`.
+Nginx y el servicio web anterior siguieron activos, sin reinicios. El hash del
+manifiesto de Wiener no cambió. Pasaron 85 pruebas, incluidas las del
+actualizador, y TypeScript. El lint de los archivos de los últimos cambios pasó;
+el lint global conserva errores anteriores de tipos `any` en SQLite e incluye
+archivos generados en `release/`. Sigue pendiente la prueba de instalación y
+actualización en una PC o VM Windows x64. El instalador no está firmado.
 
 ## Verificación de 0.2.0
 
