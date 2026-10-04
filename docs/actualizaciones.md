@@ -40,7 +40,7 @@ La app consulta `https://sinnick.dev/cdt/update/latest.yml`.
 }
 ```
 
-La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.3.0.
+La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.4.0.
 La página de descarga es [sinnick.dev/cdt/](https://sinnick.dev/cdt/). Los archivos
 viven en `/var/www/cdt-download/`, separados del sitio principal y de Wiener.
 La configuración y el respaldo de Nginx están documentados en
@@ -90,6 +90,25 @@ las versiones anteriores. SHA-256 del instalador 0.3.0:
 ```text
 7628fdfd3f9058d3b38cf5798e823a8a9c6a3fa578cc11a2a6915faef0c49889
 ```
+
+La versión 0.4.0 se publicó el 4 de octubre de 2026. Incluye cierre automático
+de caja a las 23:59, el informe de mercadería y ganancias, y ventas por categoría
+con períodos día, semana y mes y orden descendente por importe. Pasaron 110
+pruebas y TypeScript. La descarga completa por HTTPS se verificó por tamaño,
+SHA-256 y SHA-512; también se verificaron el blockmap y los rangos HTTP. Se
+publicó el manifiesto atómicamente al final, conservando las versiones previas.
+SHA-256 del instalador 0.4.0:
+
+```text
+063a3103f4636b9b8b06fddbf8111363fbbbfbde5ded830594f405c2e96c5d76
+```
+
+La migración de SQLite crea `product_categories` si falta, agrega su columna
+`code` si falta y agrega `registers.automatic` con valor inicial 0. No requiere
+borrar los datos. La identidad y ubicación de la base se mantienen. El paquete
+incluye el canal CDT y no contiene bases de datos del desarrollador. Sigue
+pendiente la prueba de instalación y actualización en Windows x64; el instalador
+no está firmado.
 
 El script de empaquetado tiene `--publish never`: genera los archivos pero **no
 los sube**. La publicación en el servidor es manual.

@@ -60,8 +60,38 @@ el HTML. Las descargas admiten rangos HTTP para el actualizador.
 La primera publicación se preparó completa en un directorio privado, se
 verificaron los cuatro archivos y luego se habilitó la ruta pública.
 
-La versión actual es 0.3.0, publicada el 4 de octubre de 2026. Se
+La versión actual es 0.4.0, publicada el 4 de octubre de 2026. Se
 conservaron los instaladores y blockmaps anteriores para las instalaciones existentes.
+
+## Verificación de 0.4.0
+
+Incluye el cierre automático de caja a las 23:59 de Mendoza, el informe de
+mercadería y ganancias, y las ventas por categoría por día, semana y mes,
+ordenadas por importe de mayor a menor.
+
+El instalador Windows x64 tiene 208.988.289 bytes. Se verificaron los hashes
+SHA-256 del HTML, instalador, blockmap y manifiesto en el directorio privado
+`/root/cdt-0.4.0.mFlDpfyr/`. Allí quedaron `previous-index.html` y
+`previous-latest.yml` como respaldo de la publicación 0.3.0.
+
+Antes de activar el manifiesto se descargó el instalador completo por HTTPS.
+Coincidieron tamaño, SHA-256 y SHA-512, y se verificaron el hash del blockmap y
+las respuestas HTTP por rangos. SHA-256 del instalador:
+
+```text
+063a3103f4636b9b8b06fddbf8111363fbbbfbde5ded830594f405c2e96c5d76
+```
+
+La página y `latest.yml` se publicaron con renombrado atómico, el manifiesto
+como último paso. Los archivos tienen permisos `0644`; los directorios `0755`.
+Nginx y `casadelastartas` siguieron activos sin reinicios, y el hash del
+manifiesto de Wiener no cambió.
+
+Pasaron 110 pruebas, TypeScript y el lint de los nuevos informes, el reloj de
+caja y sus pruebas. Se verificaron la versión empaquetada, el ejecutable x64,
+el canal CDT, los componentes de Drive y caja, y la ausencia de archivos SQLite
+en el paquete. Sigue pendiente probar la instalación y actualización en una
+PC o VM Windows x64. El instalador no está firmado.
 
 ## Verificación de 0.3.0
 
