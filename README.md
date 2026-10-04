@@ -71,6 +71,15 @@ La base vive en la carpeta de datos del usuario: en Windows,
 
 ## Ganancias y pérdidas
 
+En Resumen, **Ventas por categoría** muestra lo cobrado, las cantidades y el
+número de ventas de todas las categorías, incluso las que no vendieron. Tiene
+un selector independiente de Día, Semana o Mes y una fecha para consultar
+períodos anteriores. La semana va de lunes a domingo y el mes es calendario,
+no los últimos 7/30 días. Usa fechas de Argentina, excluye anulaciones y fechas
+futuras, y conserva los precios guardados en cada venta. Las cantidades no
+mezclan kilos con unidades. Se agrupa según las categorías actuales del
+catálogo; los productos borrados se muestran en Sin categoría.
+
 La sección **Ganancias** muestra el resultado del día, últimos 7 o 30 días,
 mes actual o todo el historial hasta hoy, con fechas de Argentina.
 La ganancia bruta resta a las ventas no anuladas el costo guardado en sus

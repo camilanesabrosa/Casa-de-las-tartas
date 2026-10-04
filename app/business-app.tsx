@@ -5,6 +5,7 @@ import { UpdateBanner, useDesktopUpdates } from "./updates";
 import { useDesktopDrive } from "./drive-backups";
 import { DailySalesShortcut } from "./daily-sales";
 import { ProfitView } from "./profit-view";
+import { CategorySales } from "./category-sales";
 import { useBusinessDay } from "@/hooks/use-business-day";
 import { allSalesFilters, todaySalesFilters, type SalesFilters } from "@/lib/sales";
 import { useState, useEffect, useRef } from "react";
@@ -37,7 +38,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
-  categoryRanking,
   money,
   quantityLabel,
   summary,
@@ -316,6 +316,7 @@ export default function BusinessApp() {
                 days={days}
                 setDays={setDays}
                 navigate={navigate}
+                today={today}
               />
               <div className="dashboard-actions">
                 <Button className="btn" onClick={() => setCashOpen(true)}>
@@ -439,24 +440,20 @@ function MenuNav({
     </nav>
   );
 }
-const periodLabel: Record<number, string> = {
-  1: "Cobrado por categoría hoy",
-  7: "Cobrado por categoría en los últimos 7 días",
-  30: "Cobrado por categoría en los últimos 30 días",
-};
 export function Dashboard({
   data,
   days,
   setDays,
   navigate,
+  today = dateKey(),
 }: {
   data: Business;
   days: number;
   setDays: (n: number) => void;
   navigate: (s: string) => void;
+  today?: string;
 }) {
   const s = summary(data, days);
-  const ranking = categoryRanking(data.products, s.sales);
   const chart = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - 6 + i);
@@ -575,48 +572,7 @@ export function Dashboard({
           </button>
         </section>
       </div>
-      <section className="panel category-panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Categoría más vendida</h2>
-            <p>{periodLabel[days] || "Del período elegido"}</p>
-          </div>
-          {ranking.length > 0 && (
-            <span className="legend">
-              <i className="dot brand-dot" />
-              {ranking[0].name}
-            </span>
-          )}
-        </div>
-        {ranking.length > 0 ? (
-          <div
-            className="category-chart"
-            role="img"
-            aria-label={ranking
-              .map((c) => `${c.name}: ${money(c.amount)}`)
-              .join(", ")}
-          >
-            {ranking.map((c, i) => (
-              <div className="category-row" key={c.name}>
-                <span className="category-name">{c.name}</span>
-                <div className="category-track">
-                  <div
-                    className={`category-bar ${i === 0 ? "leader" : ""}`}
-                    style={{
-                      width: `${Math.max((c.amount / ranking[0].amount) * 100, 2)}%`,
-                    }}
-                  />
-                </div>
-                <span className="category-amount">{money(c.amount)}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="category-empty">
-            Todavía no hay ventas en este período.
-          </p>
-        )}
-      </section>
+      <CategorySales data={data} today={today} />
     </>
   );
 }

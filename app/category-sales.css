@@ -1,0 +1,34 @@
+/* Existing Figtree + mono, paper #fff, violet #934fb8, 4px spacing.
+   Signature: exact amounts beside solid bars, not only a winning category. */
+:root { --category-sales-body: 16px; --category-sales-note: 14px; --category-sales-total: 28px; }
+.category-sales-heading { flex-wrap: wrap; gap: var(--space-4); }
+.category-sales-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); }
+.category-sales-periods { display: flex; flex-wrap: wrap; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-md); background: var(--muted); }
+.category-sales-periods button { min-height: 44px; padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); color: var(--foreground); font-size: var(--category-sales-body); }
+.category-sales-periods button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-strong); font-weight: 600; }
+.category-sales-periods button:hover { background: var(--paper); }
+.category-sales-periods button:active { background: var(--brand-soft); }
+.category-sales-date { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--category-sales-note); color: var(--muted-foreground); }
+.category-sales-date input { min-height: 44px; max-width: 100%; padding: var(--space-2) var(--space-3); background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--foreground); font-size: var(--category-sales-body); }
+.category-sales-controls > .text-link { min-height: 44px; }
+.category-sales-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4); padding: 0 var(--space-6) var(--space-4); font-size: var(--category-sales-body); }
+.category-sales-summary small { display: block; margin-top: var(--space-1); color: var(--muted-foreground); font-size: var(--category-sales-note); }
+.category-sales-summary strong { display: block; margin-top: var(--space-1); font-size: var(--category-sales-total); font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.category-sales-scroll { overflow-x: auto; margin: 0 var(--space-6); }
+.category-sales-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--category-sales-body); }
+.category-sales-table th, .category-sales-table td { padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--border); text-align: left; }
+.category-sales-table thead th { color: var(--muted-foreground); font-size: var(--category-sales-note); font-weight: 500; }
+.category-sales-table tbody th { min-width: 160px; font-weight: 500; overflow-wrap: anywhere; }
+.category-sales-table td { font-variant-numeric: tabular-nums; }
+.category-sales-table th:last-child, .category-sales-table td:last-child { text-align: right; }
+.category-sales-amount { font-family: var(--font-mono); white-space: nowrap; }
+.category-sales-track { height: var(--space-2); min-width: 120px; margin-top: var(--space-2); background: var(--muted); border-radius: var(--radius-sm); overflow: hidden; }
+.category-sales-bar { height: 100%; background: var(--brand); border-radius: var(--radius-sm); }
+.category-sales-message { padding: 0 var(--space-6) var(--space-4); font-size: var(--category-sales-body); color: var(--muted-foreground); }
+.category-sales-note { padding: var(--space-4) var(--space-6) var(--space-6); color: var(--muted-foreground); font-size: var(--category-sales-note); line-height: 1.5; }
+.category-sales-panel button:focus-visible, .category-sales-date input:focus-visible, .category-sales-scroll:focus-visible { outline: 2px solid var(--ring); outline-offset: var(--space-1); }
+@media (max-width: 480px) {
+  .category-sales-heading, .category-sales-note { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .category-sales-summary, .category-sales-message { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .category-sales-scroll { margin-left: var(--space-4); margin-right: var(--space-4); }
+}
