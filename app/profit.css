@@ -1,0 +1,51 @@
+/* Existing paper/violet identity. The ledger explains the result; the total
+   is the focal point, while purchases stay separate from earned profit. */
+:root {
+  --profit-body-size: 16px;
+  --profit-note-size: 14px;
+  --profit-heading-size: 20px;
+  --profit-value-size: 20px;
+  --profit-total-size: clamp(32px, 4vw, 48px);
+}
+.profit-view { display: grid; gap: var(--space-6); }
+.profit-toolbar { margin-bottom: 0; flex-wrap: wrap; }
+.profit-toolbar h2 { font-size: var(--profit-heading-size); }
+.profit-toolbar .period-control { min-height: 44px; font-size: var(--profit-note-size); flex-wrap: wrap; }
+.profit-toolbar select { min-height: var(--space-8); max-width: 100%; }
+.profit-period, .profit-note { color: var(--muted-foreground); font-size: var(--profit-note-size); line-height: 1.5; }
+.profit-period { margin-top: calc(-1 * var(--space-3)); }
+.profit-panel { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); overflow: hidden; }
+.profit-ledger, .profit-outcome, .profit-purchases { padding: var(--space-6); }
+.profit-panel h2, .profit-purchases h2 { font-size: var(--profit-heading-size); margin-bottom: var(--space-4); }
+.profit-view dl, .profit-view dd { margin: 0; }
+.profit-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.65fr); gap: var(--space-4); align-items: start; padding: var(--space-4) 0; border-bottom: 1px solid var(--border); }
+.profit-row dt { font-size: var(--profit-body-size); }
+.profit-row dt small { display: block; font-size: var(--profit-note-size); line-height: 1.5; color: var(--muted-foreground); margin-top: var(--space-1); }
+.profit-row dd { font-size: var(--profit-value-size); text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.profit-subtotal dt, .profit-subtotal dd { font-weight: 600; }
+.profit-subtotal dt small { font-weight: 400; }
+.profit-ledger > .profit-note, .profit-purchases > .profit-note { margin-top: var(--space-4); }
+.profit-outcome { background: var(--success-light); border-left: 1px solid var(--border); }
+.profit-outcome > p:not(.profit-main-amount) { font-size: var(--profit-body-size); line-height: 1.5; }
+.profit-outcome > .profit-note { font-size: var(--profit-note-size); }
+.profit-main-amount { color: var(--success); font-size: var(--profit-total-size); line-height: 1.2; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin-bottom: var(--space-4); }
+.profit-outcome.profit-loss { background: var(--red-light); }
+.profit-loss .profit-main-amount, .profit-negative { color: var(--red); }
+.profit-outcome.profit-incomplete { background: var(--amber-light); }
+.profit-incomplete .profit-main-amount { color: var(--amber); }
+.profit-loss-detail { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); padding-top: var(--space-6); font-size: var(--profit-body-size); }
+.profit-loss-detail dd { font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.profit-outcome .text-link { margin-top: var(--space-6); min-height: 44px; }
+.profit-notice { padding: var(--space-4); background: var(--muted); border-radius: var(--radius-md); font-size: var(--profit-body-size); line-height: 1.5; overflow-wrap: anywhere; }
+.profit-warning { background: var(--amber-light); }
+.profit-warning p, .profit-warning .text-link { margin-top: var(--space-2); }
+.profit-warning .text-link { min-height: 44px; }
+@media (max-width: 1050px) {
+  .profit-panel { grid-template-columns: minmax(0, 1fr); }
+  .profit-outcome { border-left: 0; border-top: 1px solid var(--border); }
+}
+@media (max-width: 480px) {
+  .profit-ledger, .profit-outcome, .profit-purchases { padding: var(--space-4); }
+  .profit-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .profit-row dd { text-align: left; }
+}

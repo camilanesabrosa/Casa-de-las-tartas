@@ -4,6 +4,7 @@ import { CalendarView } from "./calendar-view";
 import { UpdateBanner, useDesktopUpdates } from "./updates";
 import { useDesktopDrive } from "./drive-backups";
 import { DailySalesShortcut } from "./daily-sales";
+import { ProfitView } from "./profit-view";
 import { useBusinessDay } from "@/hooks/use-business-day";
 import { allSalesFilters, todaySalesFilters, type SalesFilters } from "@/lib/sales";
 import { useState, useEffect, useRef } from "react";
@@ -20,6 +21,7 @@ import {
   CalendarDays,
   Download,
   Check,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -63,6 +65,7 @@ export const navigation = [
   { id: "sales", label: "Ventas", icon: ShoppingBasket },
   { id: "products", label: "Productos y stock", icon: Package },
   { id: "expenses", label: "Gastos y compras", icon: ReceiptText },
+  { id: "profit", label: "Ganancias", icon: ChartNoAxesCombined },
   { id: "calendar", label: "Calendario", icon: CalendarDays },
 ];
 async function fetchBusiness(signal?: AbortSignal): Promise<Business> {
@@ -174,6 +177,7 @@ export default function BusinessApp() {
                   "sales",
                   "products",
                   "expenses",
+                  "profit",
                   "calendar",
                   "settings",
                 ],
@@ -191,6 +195,7 @@ export default function BusinessApp() {
                 "sales",
                 "products",
                 "expenses",
+                "profit",
                 "calendar",
                 "settings",
               ].includes(value?.section)
@@ -325,6 +330,8 @@ export default function BusinessApp() {
             </>
           ) : view === "calendar" ? (
             <CalendarView data={data} />
+          ) : view === "profit" ? (
+            <ProfitView data={data} today={today} navigate={navigate} />
           ) : view === "products" ? (
             <ProductsView data={data} save={save} />
           ) : view === "sales" ? (
@@ -469,6 +476,7 @@ export function Dashboard({
     <>
       <div className="section-toolbar">
         <h2>Resumen del negocio</h2>
+        <button className="text-link" onClick={() => navigate("profit")}>Ver ganancias <ArrowRight /></button>
         <div className="period-control">
           <CalendarDays />
           <select

@@ -69,6 +69,27 @@ del corte. Los cierres históricos ya guardados no se modifican.
 La base vive en la carpeta de datos del usuario: en Windows,
 `%APPDATA%\mostrador\business.sqlite`. Borrar ese archivo regenera la muestra.
 
+## Ganancias y pérdidas
+
+La sección **Ganancias** muestra el resultado del día, últimos 7 o 30 días,
+mes actual o todo el historial hasta hoy, con fechas de Argentina.
+La ganancia bruta resta a las ventas no anuladas el costo guardado en sus
+líneas. La ganancia neta resta además los gastos fijos y variables registrados
+en ese período, pagados o pendientes, por su fecha de registro. La pérdida es
+el valor absoluto del resultado neto negativo, no un descuento adicional.
+
+Las compras y los pagos a proveedores se muestran aparte. No se resta toda una
+compra al resultado: la mercadería todavía disponible sigue en stock y el costo
+de la parte vendida ya se descontó. Los pagos usan su propia fecha y pueden
+corresponder a compras anteriores. Los aportes, retiros y arqueos no son ganancias.
+Si una línea vendida no tiene costo o tiene costo cero, se avisa y no se muestran
+ganancia bruta, neta ni pérdida definitivas. Cambiar el costo actual no corrige
+esas ventas históricas. El informe usa costos registrados, no FIFO ni promedio
+ponderado; no es un informe contable ni el saldo de caja. No valora mermas ni
+ajustes de stock, y no incluye impuestos u otros costos no registrados.
+
+Referencia del criterio de mercadería vendida: [IAS 2, IFRS](https://www.ifrs.org/issued-standards/list-of-standards/ias-2-inventories/).
+
 ## Código de cartel
 
 Cada producto tiene un número y su categoría aporta una letra, replicando los
