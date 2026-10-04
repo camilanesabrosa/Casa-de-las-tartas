@@ -87,7 +87,7 @@ export function ProfitView({ data, today, navigate }: {
       <section className="panel profit-purchases" aria-label="Mercadería del período">
         <h2>Lo que ingresó en mercadería</h2>
         <dl>
-          <div className="profit-row"><dt>Mercadería recibida <small>Valor total de las {report.purchasesCount} {report.purchasesCount === 1 ? "compra registrada" : "compras registradas"}, pagadas o pendientes</small></dt><dd>{money(report.purchased)}</dd></div>
+          <div className="profit-row"><dt>Mercadería recibida <small>Valor total de {report.purchasesCount} {report.purchasesCount === 1 ? "compra registrada, pagada o pendiente" : "compras registradas, pagadas o pendientes"}</small></dt><dd>{money(report.purchased)}</dd></div>
           <div className="profit-row"><dt>Pagos a proveedores <small>Pagado en este período, incluso por compras anteriores</small></dt><dd>{money(report.purchasePayments)}</dd></div>
         </dl>
         <p className="profit-note">Comprar mercadería no significa perder dinero. Mientras no se venda, queda en stock. Su costo se descuenta al venderla, para no contarlo dos veces.</p>

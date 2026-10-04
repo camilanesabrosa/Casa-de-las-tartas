@@ -9,6 +9,8 @@
 }
 .profit-view { display: grid; gap: var(--space-6); }
 .profit-toolbar { margin-bottom: 0; flex-wrap: wrap; }
+.overview-toolbar { flex-wrap: wrap; }
+.overview-toolbar .text-link { min-height: 44px; }
 .profit-toolbar h2 { font-size: var(--profit-heading-size); }
 .profit-toolbar .period-control { min-height: 44px; font-size: var(--profit-note-size); flex-wrap: wrap; }
 .profit-toolbar select { min-height: var(--space-8); max-width: 100%; }
@@ -18,7 +20,7 @@
 .profit-ledger, .profit-outcome, .profit-purchases { padding: var(--space-6); }
 .profit-panel h2, .profit-purchases h2 { font-size: var(--profit-heading-size); margin-bottom: var(--space-4); }
 .profit-view dl, .profit-view dd { margin: 0; }
-.profit-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.65fr); gap: var(--space-4); align-items: start; padding: var(--space-4) 0; border-bottom: 1px solid var(--border); }
+.profit-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.65fr); gap: var(--space-4); align-items: start; padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
 .profit-row dt { font-size: var(--profit-body-size); }
 .profit-row dt small { display: block; font-size: var(--profit-note-size); line-height: 1.5; color: var(--muted-foreground); margin-top: var(--space-1); }
 .profit-row dd { font-size: var(--profit-value-size); text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

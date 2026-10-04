@@ -474,7 +474,7 @@ export function Dashboard({
   const max = Math.max(...chart.map((c) => c.amount), 1);
   return (
     <>
-      <div className="section-toolbar">
+      <div className="section-toolbar overview-toolbar">
         <h2>Resumen del negocio</h2>
         <button className="text-link" onClick={() => navigate("profit")}>Ver ganancias <ArrowRight /></button>
         <div className="period-control">
