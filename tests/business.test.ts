@@ -36,7 +36,7 @@ test("el código combina el número del cartel con la letra de su categoría", (
 });
 test("cada categoría numera desde 1 y no repite códigos", () => {
   const b = createDemo();
-  const codes = b.products.map(productCode);
+  const codes = b.products.map((p) => productCode(p));
   assert.equal(new Set(codes).size, codes.length);
   for (const category of categories) {
     const numbers = b.products
@@ -71,7 +71,7 @@ test("los productos guardados sin número reciben uno sin pisar los existentes",
   };
   const fixed = withProductNumbers(legacy);
   assert.deepEqual(
-    fixed.products.map(productCode),
+    fixed.products.map((p) => productCode(p)),
     ["1C", "4C", "2C", "3C", "5C"],
   );
   assert.equal(withProductNumbers(b), b, "sin cambios no copia el negocio");
@@ -268,15 +268,15 @@ test("abrir caja registra el saldo inicial y no permite dos abiertas", () => {
   );
 });
 test("el turno suma todos los medios de pago desde la apertura", () => {
-  const b = applyAction(createDemo(), { type: "openRegister", opening: 2000000 });
+  const b = applyAction(createDemo(new Date("2026-09-20T23:00:00Z")), { type: "openRegister", opening: 2000000 }, "2026-09-21T09:00:00Z");
   let n = b;
   for (const method of ["Efectivo", "Transferencia", "Tarjeta"] as const)
     n = applyAction(n, {
       type: "sale",
       items: [{ productId: "p11", quantity: 1000 }],
       method,
-    });
-  n = applyAction(n, { type: "cash", kind: "withdrawal", amount: 50000, reason: "Retiro" });
+    }, "2026-09-21T10:00:00Z");
+  n = applyAction(n, { type: "cash", kind: "withdrawal", amount: 50000, reason: "Retiro" }, "2026-09-21T11:00:00Z");
   const caja = openRegister(n)!;
   const d = registerBreakdown(n, caja);
   assert.equal(d.salesCount, 3);
@@ -290,7 +290,7 @@ test("el turno suma todos los medios de pago desde la apertura", () => {
   assert.ok(d.salesTotal < n.sales.reduce((a, s) => a + s.total, 0));
 });
 test("cerrar caja asienta la diferencia y el saldo sigue al arqueo", () => {
-  const b = applyAction(createDemo(), { type: "openRegister", opening: 2000000 });
+  const b = applyAction(createDemo(new Date("2026-09-20T23:00:00Z")), { type: "openRegister", opening: 2000000 }, "2026-09-21T09:00:00Z");
   const antes = summary(b).balance;
   const esperado = registerExpected(b, openRegister(b)!);
   const faltante = applyAction(b, { type: "closeRegister", counted: esperado - 30000 });

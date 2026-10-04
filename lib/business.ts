@@ -73,6 +73,7 @@ export type Business = {
   version: number;
   settings: { name: string; whatsapp: string; address: string };
   products: Product[];
+  productCategories?: string[];
   sales: Sale[];
   suppliers: Supplier[];
   purchases: Purchase[];
@@ -88,14 +89,30 @@ export const categories = [
   "Varios",
   "Tartas",
 ] as const;
-export const categoryLetter = (category: string) => {
-  const i = categories.indexOf(category as (typeof categories)[number]);
-  return i < 0 ? "" : String.fromCharCode(65 + i);
+export function getProductCategories(b: Pick<Business, "products" | "productCategories">): string[] {
+  const names = [...categories, ...(b.productCategories || []), ...b.products.map((p) => p.category)];
+  const seen = new Set<string>();
+  return names.filter((name) => {
+    const key = name.trim().toLocaleLowerCase("es-AR");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+export const categoryLetter = (category: string, names: readonly string[] = categories) => {
+  let index = names.findIndex((name) => name.toLocaleLowerCase("es-AR") === category.toLocaleLowerCase("es-AR")) + 1;
+  let code = "";
+  while (index > 0) {
+    index--;
+    code = String.fromCharCode(65 + index % 26) + code;
+    index = Math.floor(index / 26);
+  }
+  return code;
 };
-export const productCode = (p: Pick<Product, "number" | "category">) =>
-  `${p.number}${categoryLetter(p.category)}`;
-export const matchesCode = (p: Pick<Product, "number" | "category">, q: string) =>
-  productCode(p).toLowerCase() === q.trim().toLowerCase().replace(/\s+/g, "");
+export const productCode = (p: Pick<Product, "number" | "category">, names: readonly string[] = categories) =>
+  `${p.number}${categoryLetter(p.category, names)}`;
+export const matchesCode = (p: Pick<Product, "number" | "category">, q: string, names: readonly string[] = categories) =>
+  productCode(p, names).toLowerCase() === q.trim().toLowerCase().replace(/\s+/g, "");
 const hasNumber = (p: Product) => Number.isInteger(p.number) && p.number > 0;
 // Los documentos guardados antes del cartel numerado no traen `number`.
 // Se completa por orden de aparición sin pisar los números ya asignados.

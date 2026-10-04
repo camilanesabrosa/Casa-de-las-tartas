@@ -8,12 +8,13 @@ try {
   const outfile = join(temp, "business-test.mjs");
   await build({
     stdin: {
-      contents: 'import "./tests/business.test.ts"; import "./tests/calendar.test.ts"; import "./tests/update-ui.test.tsx"; import "./tests/daily-sales.test.tsx";',
+      contents: 'import "./tests/business.test.ts"; import "./tests/business-editing.test.ts"; import "./tests/calendar.test.ts"; import "./tests/update-ui.test.tsx"; import "./tests/daily-sales.test.tsx";',
       resolveDir: process.cwd(),
       loader: "ts",
     },
     outfile,
     bundle: true,
+    alias: { "cloudflare:workers": resolve("deployment/node-bindings.ts") },
     platform: "node",
     format: "esm",
     banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' },

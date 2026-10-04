@@ -5,6 +5,7 @@ import {
   lineTotal,
   openRegister,
   registerExpected,
+  getProductCategories,
 } from "./business";
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
@@ -36,6 +37,8 @@ const productSchema = z.object({
 export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("resetBusiness") }),
   z.object({ type: z.literal("product"), product: productSchema }),
+  z.object({ type: z.literal("productCategory"), name: text }),
+  z.object({ type: z.literal("productPrice"), id: text, price: amount.refine((n) => n > 0, "El precio debe ser mayor que cero.") }),
   z.object({
     type: z.literal("sale"),
     items: z
@@ -77,12 +80,14 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("expense"),
+    id: text.optional(),
     name: text,
     category: z.enum(["Fijo", "Variable"]),
     amount: amount.refine((n) => n > 0),
     paid: z.boolean(),
   }),
   z.object({ type: z.literal("payExpense"), id: text }),
+  z.object({ type: z.literal("deleteExpense"), id: text }),
   z.object({
     type: z.literal("cash"),
     kind: z.enum(["deposit", "withdrawal"]),
@@ -117,6 +122,7 @@ export function applyAction(
 ): Business {
   const a = actionSchema.parse(raw);
   const b = structuredClone(original);
+  b.productCategories = getProductCategories(b);
   const id = (prefix: string) =>
     `${prefix}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   const getProduct = (pid: string) => {
@@ -150,7 +156,32 @@ export function applyAction(
     if (amount > 0)
       b.payments.push({ id: id("P"), date: now, amount, kind, reference });
   };
+  const categoryName = (name: string) => {
+    if (name.toLocaleLowerCase("es-AR") === "todos")
+      throw new Error('Usá otro nombre de categoría. "Todos" se usa para mostrar todos los productos.');
+    const existing = b.productCategories!.find((category) => category.toLocaleLowerCase("es-AR") === name.toLocaleLowerCase("es-AR"));
+    if (existing) return existing;
+    if (b.productCategories!.length >= 100) throw new Error("Podés guardar hasta 100 categorías.");
+    b.productCategories!.push(name);
+    return name;
+  };
+  // Keep original payment dates and closed-register figures. Corrections belong
+  // to today, including negative expense entries that reverse a mistaken charge.
+  const reconcileExpense = (expenseId: string, target: number) => {
+    const recorded = b.payments.filter((p) => p.kind === "expense" && p.reference === expenseId)
+      .reduce((total, p) => total + p.amount, 0);
+    const difference = target - recorded;
+    if (difference !== 0) b.payments.push({ id: id("P"), date: now, amount: difference, kind: "expense", reference: expenseId });
+  };
   switch (a.type) {
+    case "productCategory":
+      if (b.productCategories.some((name) => name.toLocaleLowerCase("es-AR") === a.name.toLocaleLowerCase("es-AR")))
+        throw new Error("Esa categoría ya existe.");
+      categoryName(a.name);
+      break;
+    case "productPrice":
+      getProduct(a.id).price = a.price;
+      break;
     case "resetBusiness":
       b.products = b.products.map((product) => ({ ...product, stock: 0 }));
       b.suppliers = [];
@@ -167,6 +198,9 @@ export function applyAction(
           "Esta muestra admite hasta 500 variedades de productos.",
         );
       const p = a.product;
+      p.category = categoryName(p.category);
+      if (b.products.some((other) => other.id !== p.id && other.category === p.category && other.number === p.number))
+        throw new Error("Ese número de cartel ya está usado en esta categoría. Elegí otro número.");
       validQty(p as Product, p.stock);
       validQty(p as Product, p.minimum);
       if (p.id) {
@@ -278,6 +312,13 @@ export function applyAction(
       break;
     }
     case "expense": {
+      if (a.id) {
+        const expense = b.expenses.find((e) => e.id === a.id);
+        if (!expense) throw new Error("No encontramos ese gasto. Actualizá los datos.");
+        Object.assign(expense, { name: a.name, category: a.category, amount: a.amount, paid: a.paid });
+        reconcileExpense(expense.id, expense.paid ? expense.amount : 0);
+        break;
+      }
       const expenseId = id("G");
       b.expenses.push({
         id: expenseId,
@@ -288,6 +329,13 @@ export function applyAction(
         paid: a.paid,
       });
       if (a.paid) payment("expense", a.amount, expenseId);
+      break;
+    }
+    case "deleteExpense": {
+      const expense = b.expenses.find((e) => e.id === a.id);
+      if (!expense) throw new Error("No encontramos ese gasto. Actualizá los datos.");
+      reconcileExpense(expense.id, 0);
+      b.expenses = b.expenses.filter((e) => e.id !== expense.id);
       break;
     }
     case "payExpense": {
