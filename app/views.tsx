@@ -1,6 +1,7 @@
 "use client";
 import { UpdateSettings, type useDesktopUpdates } from "./updates";
 import { DriveBackupSettings, type DriveControls } from "./drive-backups";
+import { ProductCategories } from "./product-categories";
 import {
   Table,
   TableHeader,
@@ -24,6 +25,7 @@ import {
   BadgeDollarSign,
   Pencil,
   SlidersHorizontal,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ import {
   quantityLabel,
   summary,
   getProductCategories,
+  getProductCategoryCodes,
   categoryLetter,
   productCode,
   matchesCode,
@@ -45,7 +48,6 @@ import {
 import {
   type Save,
   ProductEditor,
-  CategoryEditor,
   PriceEditor,
   StockEditor,
   PurchaseEditor,
@@ -86,14 +88,15 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [stock, setStock] = useState<Product | null>(null);
   const [history, setHistory] = useState<Product | null>(null);
-  const [newCategory, setNewCategory] = useState(false);
+  const [manageCategories, setManageCategories] = useState(false);
   const [price, setPrice] = useState<Product | null>(null);
   const categoryNames = getProductCategories(data);
+  const categoryCodes = getProductCategoryCodes(data);
   const products = data.products.filter(
     (p) =>
       (category === "Todos" || p.category === category) &&
       (!low || p.stock <= p.minimum) &&
-      (matchesCode(p, q, categoryNames) ||
+      (matchesCode(p, q, categoryNames, categoryCodes) ||
         `${p.name} ${p.variety}`.toLowerCase().includes(q.toLowerCase())),
   );
   return (
@@ -109,9 +112,9 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           />
         </div>
         <div className="button-group">
-          <Button className="btn" onClick={() => setNewCategory(true)}>
-            <Plus />
-            Nueva categoría
+          <Button className="btn" onClick={() => setManageCategories(true)}>
+            <Tags aria-hidden="true" />
+            Categorías
           </Button>
           <Button className="btn" onClick={() => downloadCSV(data)}>
             <Download />
@@ -128,7 +131,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           <TabsList className="filter-tabs">
             {["Todos", ...categoryNames].map((c) => (
               <TabsTrigger key={c} value={c}>
-                {c === "Todos" ? c : `${c} · ${categoryLetter(c, categoryNames)}`}
+                {c === "Todos" ? c : `${c} · ${categoryLetter(c, categoryNames, categoryCodes)}`}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -167,7 +170,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
               {products.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <span className="product-code">{productCode(p, categoryNames)}</span>
+                    <span className="product-code">{productCode(p, categoryNames, categoryCodes)}</span>
                   </TableCell>
                   <TableCell>
                     <button
@@ -230,12 +233,17 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
       <p className="footnote">
         Los cambios de precio se aplican a las próximas ventas. Las ventas anteriores conservan sus importes.
       </p>
-      {newCategory ? <CategoryEditor save={save} close={() => setNewCategory(false)} /> : null}
+      {manageCategories ? <ProductCategories data={data} close={() => setManageCategories(false)} save={async (action) => {
+        await save(action);
+        if (action.type === "renameProductCategory" && category === action.name) setCategory(action.newName.trim());
+        if (action.type === "deleteProductCategory" && category === action.name) setCategory(action.targetCategory || "Todos");
+      }} /> : null}
       {price ? <PriceEditor product={price} save={save} close={() => setPrice(null)} /> : null}
       {editing && (
         <ProductEditor
           product={editing === "new" ? undefined : editing}
           categoryNames={categoryNames}
+          categoryCodes={categoryCodes}
           initialCategory={category === "Todos" ? "Pastas" : category}
           save={save}
           close={() => setEditing(null)}

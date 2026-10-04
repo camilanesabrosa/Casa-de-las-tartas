@@ -1810,6 +1810,43 @@ td small {
   font-size: 14px;
   animation: none;
 }
+.category-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.category-details {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.category-row:last-child {
+  border-bottom: 0;
+}
+.category-details small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  margin-top: var(--space-1);
+}
+.category-delete-button {
+  color: var(--red);
+}
+.category-delete-button:hover {
+  background: var(--red-light);
+}
 @media (pointer: coarse) {
   .product-action-button {
     width: 44px;

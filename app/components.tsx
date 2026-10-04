@@ -33,6 +33,7 @@ import {
   varieties,
   categories,
   categoryLetter,
+  getProductCategoryCodes,
   registerBreakdown,
   openRegister,
 } from "@/lib/business";
@@ -194,23 +195,27 @@ const cents = (f: FormData, k: string) => Math.round(num(f, k) * 100);
 export function ProductEditor({
   product,
   categoryNames = categories,
+  categoryCodes,
   initialCategory = "Pastas",
   save,
   close,
 }: {
   product?: Product;
   categoryNames?: readonly string[];
+  categoryCodes?: Record<string, string>;
   initialCategory?: string;
   save: Save;
   close: () => void;
 }) {
   const [unit, setUnit] = useState(product?.unit || "unit");
-  const [category, setCategory] = useState(product?.category || initialCategory);
+  const [category, setCategory] = useState(product?.category || (categoryNames.includes(initialCategory) ? initialCategory : categoryNames[0] || ""));
   const [newCategory, setNewCategory] = useState("");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   const [productName, setProductName] = useState(product?.name || "");
   const [variety, setVariety] = useState(product?.variety || "");
   const [number, setNumber] = useState(String(product?.number || ""));
+  const previewNames = category ? categoryNames : [...categoryNames, newCategory.trim()];
+  const previewCodes = getProductCategoryCodes({ products: [], productCategories: [...previewNames], productCategoryCodes: categoryCodes });
   return (
     <Modal
       title={product ? "Editar producto" : "Nuevo producto"}
@@ -227,7 +232,7 @@ export function ProductEditor({
               number: num(f, "number"),
               name: string(f, "name"),
               variety: string(f, "variety"),
-              category: category === "__new__" ? newCategory.trim() : category,
+              category: category || newCategory.trim(),
               unit,
               price: cents(f, "price"),
               cost: cents(f, "cost"),
@@ -268,10 +273,10 @@ export function ProductEditor({
             <span>Categoría</span>
             <select className="field-input choice" value={category} onChange={(event) => setCategory(event.target.value)}>
               {categoryNames.map((name) => <option key={name} value={name}>{name}</option>)}
-              <option value="__new__">Crear una nueva categoría…</option>
+              <option value="">Crear una nueva categoría…</option>
             </select>
           </label>
-          {category === "__new__" ? (
+          {!category ? (
             <label className="field">
               <span>Nombre de la nueva categoría</span>
               <Input className="field-input" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} required maxLength={160} />
@@ -293,7 +298,7 @@ export function ProductEditor({
             <small>
               Código para el buscador:{" "}
               <strong>
-                {number ? `${number}${categoryLetter(category === "__new__" ? newCategory.trim() : category, category === "__new__" ? [...categoryNames, newCategory.trim()] : categoryNames)}` : "—"}
+                {number ? `${number}${categoryLetter(category || newCategory.trim(), previewNames, previewCodes)}` : "—"}
               </strong>
             </small>
           </label>
@@ -373,15 +378,6 @@ export function ProductEditor({
           />
           Mostrar en el catálogo
         </label>
-      </Form>
-    </Modal>
-  );
-}
-export function CategoryEditor({ save, close }: { save: Save; close: () => void }) {
-  return (
-    <Modal title="Nueva categoría de productos" description="Creá una categoría para agrupar tus productos." close={close}>
-      <Form close={close} label="Crear categoría" submit={(f) => save({ type: "productCategory", name: string(f, "name") })}>
-        <Field label="Nombre de la categoría" name="name" />
       </Form>
     </Modal>
   );
