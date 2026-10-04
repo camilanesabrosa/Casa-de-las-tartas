@@ -1789,3 +1789,30 @@ td small {
 .expense-delete:hover {
   text-decoration: underline;
 }
+.product-actions {
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+.product-action-button {
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--brand-strong);
+}
+.product-action-button:active {
+  background: var(--brand-soft);
+}
+.product-action-tooltip {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--foreground);
+  color: var(--background);
+  font-family: var(--font-body);
+  font-size: 14px;
+  animation: none;
+}
+@media (pointer: coarse) {
+  .product-action-button {
+    width: 44px;
+    height: 44px;
+  }
+}

@@ -21,10 +21,15 @@ import {
   ArrowRight,
   CalendarDays,
   Trash2,
+  BadgeDollarSign,
+  Pencil,
+  SlidersHorizontal,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   type Business,
   type Product,
@@ -54,6 +59,26 @@ import {
   downloadCSV,
   downloadJSON,
 } from "./components";
+function ProductAction({ label, product, icon: Icon, onClick }: {
+  label: string;
+  product: Product;
+  icon: LucideIcon;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="icon-button product-action-button" onClick={onClick}
+          aria-label={`${label}: ${[product.name, product.variety].filter(Boolean).join(" · ")}`}>
+          <Icon size={20} strokeWidth={1.5} aria-hidden="true" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="product-action-tooltip" side="top" sideOffset={8}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 export function ProductsView({ data, save }: { data: Business; save: Save }) {
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("Todos");
@@ -123,6 +148,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           Mercadería a costo actual <strong>{money(summary(data).cost)}</strong>
         </span>
       </div>
+      <TooltipProvider delayDuration={250}>
       <section className="panel">
         <div className="table-scroll">
           <Table className="data-table">
@@ -170,23 +196,11 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
                     {!p.published && <small>Oculto del catálogo</small>}
                   </TableCell>
                   <TableCell>
-                    <div className="row-actions">
-                      <button className="text-link" onClick={() => setPrice(p)} aria-label={`Cambiar precio de ${p.name} ${p.variety}`}>
-                        Cambiar precio
-                      </button>
-                      <button className="text-link" onClick={() => setEditing(p)} aria-label={`Editar ${p.name} ${p.variety}`}>
-                        Editar
-                      </button>
-                      <button className="text-link" onClick={() => setStock(p)}>
-                        Ajustar stock
-                      </button>
-                      <button
-                        className="icon-button"
-                        onClick={() => setHistory(p)}
-                        aria-label={`Historial de ${p.name}`}
-                      >
-                        <History />
-                      </button>
+                    <div className="row-actions product-actions">
+                      <ProductAction label="Cambiar precio" product={p} icon={BadgeDollarSign} onClick={() => setPrice(p)} />
+                      <ProductAction label="Editar producto" product={p} icon={Pencil} onClick={() => setEditing(p)} />
+                      <ProductAction label="Ajustar stock" product={p} icon={SlidersHorizontal} onClick={() => setStock(p)} />
+                      <ProductAction label="Ver historial" product={p} icon={History} onClick={() => setHistory(p)} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -212,6 +226,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
           </div>
         )}
       </section>
+      </TooltipProvider>
       <p className="footnote">
         Los cambios de precio se aplican a las próximas ventas. Las ventas anteriores conservan sus importes.
       </p>
