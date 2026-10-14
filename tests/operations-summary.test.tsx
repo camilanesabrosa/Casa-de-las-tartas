@@ -16,6 +16,7 @@ import {
 import {
   PurchasesOverview,
   StockOverview,
+  StockCategoryChart,
   SummaryTabs,
 } from "../app/operations-summary";
 const today = "2026-10-14";
@@ -265,36 +266,29 @@ test("stock: mínimos, sin stock, valor parcial y unidades separadas", () => {
   assert.equal(r.quantities.kg[0].product.id, "b");
   assert.deepEqual(b, before);
 });
-test("stock: agrupa existencias y valor por categoría", () => {
+test("stock: agrupa los productos por categoría con su mínimo", () => {
   const b = fixture();
   b.productCategories = ["Tartas", "Pastas", "Postres"];
   for (const p of b.products) p.category = p.id === "b" ? "Pastas" : "tartas ";
-  const rows = stockSummary(b, today).byCategory;
+  const categories = stockSummary(b, today).byCategory;
   assert.deepEqual(
-    rows.map((r) => r.name),
-    ["Pastas", "Tartas", "Postres"],
+    categories.map((c) => [c.name, c.rows.map((r) => r.product.id)]),
+    [
+      ["Tartas", ["c", "a", "d"]],
+      ["Pastas", ["b"]],
+      ["Postres", []],
+    ],
   );
-  assert.deepEqual(rows[0], {
-    name: "Pastas",
-    articles: 1,
-    inStock: 1,
-    low: 0,
-    units: 0,
-    grams: 5000,
-    amount: 5000,
-    missingCosts: 0,
-  });
-  assert.deepEqual(rows[1], {
-    name: "Tartas",
-    articles: 3,
-    inStock: 2,
-    low: 3,
-    units: 3000,
-    grams: 0,
-    amount: 1200,
-    missingCosts: 1,
-  });
-  assert.equal(rows[2].articles, 0);
+  const html = renderToStaticMarkup(
+    <StockCategoryChart categories={categories} />,
+  );
+  assert.match(html, /aria-pressed="true"[^>]*>Tartas</);
+  assert.match(html, />Pastas</);
+  // Tarta: 2 de mínimo 4 → la escala es 4 × 1,15 y la línea queda al 87 %.
+  assert.match(html, /stock-chart-row low[\s\S]*?left:86\.9/);
+  assert.match(html, /Sin stock/);
+  assert.match(html, /Mínimo 4 un\./);
+  assert.doesNotMatch(html, />Pasta</);
 });
 test("stock: demanda de 30 días, fechas locales y última venta con distintos husos", () => {
   const b = fixture();

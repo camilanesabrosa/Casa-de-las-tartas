@@ -488,53 +488,79 @@ function StockTable({
     </Table>
   );
 }
-function StockCategoryTable({ rows }: { rows: StockCategory[] }) {
-  const max = Math.max(1, ...rows.map((row) => row.amount));
+export function StockCategoryChart({ categories }: { categories: StockCategory[] }) {
+  const [selected, setSelected] = useState(categories[0]?.name ?? "");
+  const category = categories.find((c) => c.name === selected) ?? categories[0];
+  if (!category)
+    return (
+      <p className="operations-empty">
+        Agregá categorías en Productos y stock para verlas acá.
+      </p>
+    );
+  // Escala común por unidad dentro de la categoría, con aire para que la
+  // línea del mínimo no quede pegada al borde.
+  const scale = (unit: "unit" | "kg") =>
+    Math.max(
+      1,
+      ...category.rows
+        .filter((row) => row.product.unit === unit)
+        .map((row) => Math.max(row.product.stock, row.product.minimum) * 1.15),
+    );
+  const percent = (value: number, unit: "unit" | "kg") =>
+    `${Math.min(100, (value / scale(unit)) * 100)}%`;
   return (
-    <Table
-      title="Stock por categoría"
-      columns={[
-        "Categoría",
-        "Stock",
-        "Valor al costo",
-        "Artículos con stock",
-        "Para reponer",
-      ]}
-      empty={!rows.length}
-      emptyMessage="Agregá categorías en Productos y stock para verlas acá."
-    >
-      {rows.map((row) => (
-        <tr key={row.name}>
-          <th scope="row">
-            {row.name}
-            <div className="category-sales-track" aria-hidden="true">
-              <div
-                className="category-sales-bar"
-                style={{ width: `${(row.amount / max) * 100}%` }}
-              />
-            </div>
-          </th>
-          <td>
-            {[
-              row.units ? quantityLabel(row.units, "unit") : "",
-              row.grams ? quantityLabel(row.grams, "kg") : "",
-            ]
-              .filter(Boolean)
-              .join(" · ") || "Sin stock"}
-          </td>
-          <td>
-            {money(row.amount)}
-            {row.missingCosts > 0 && (
-              <small>{row.missingCosts} sin costo</small>
-            )}
-          </td>
-          <td>
-            {row.inStock} de {row.articles}
-          </td>
-          <td>{row.low || "—"}</td>
-        </tr>
-      ))}
-    </Table>
+    <>
+      <Choices
+        value={category.name}
+        onChange={setSelected}
+        label="Categoría"
+        options={categories.map((c) => [c.name, c.name] as const)}
+      />
+      {category.rows.length ? (
+        <ul className="stock-chart" aria-label={`Stock de ${category.name}`}>
+          {category.rows.map(({ product, name }) => {
+            const level =
+              product.stock === 0
+                ? "empty"
+                : product.stock <= product.minimum
+                  ? "low"
+                  : "ok";
+            return (
+              <li key={product.id} className={`stock-chart-row ${level}`}>
+                <div className="stock-chart-name">
+                  <strong>{name}</strong>
+                  {level !== "ok" && (
+                    <small>{level === "empty" ? "Sin stock" : "Reponer"}</small>
+                  )}
+                </div>
+                <div className="stock-chart-track" aria-hidden="true">
+                  <div
+                    className="stock-chart-bar"
+                    style={{ width: percent(product.stock, product.unit) }}
+                  />
+                  {product.minimum > 0 && (
+                    <div
+                      className="stock-chart-threshold"
+                      style={{ left: percent(product.minimum, product.unit) }}
+                    />
+                  )}
+                </div>
+                <div className="stock-chart-value">
+                  <strong>{quantityLabel(product.stock, product.unit)}</strong>
+                  <small>
+                    {product.minimum > 0
+                      ? `Mínimo ${quantityLabel(product.minimum, product.unit)}`
+                      : "Sin mínimo"}
+                  </small>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="operations-empty">No hay productos en {category.name}.</p>
+      )}
+    </>
   );
 }
 export function StockOverview({
@@ -597,7 +623,7 @@ export function StockOverview({
               {mode === "idle"
                 ? "Con existencias y sin ventas en los últimos 30 días."
                 : mode === "category"
-                  ? "Lo que queda en cada categoría y cuánto vale al costo."
+                  ? "El stock de cada producto frente a su mínimo de reposición."
                   : "Usá los mínimos de cada producto para planificar las compras."}
             </p>
           </div>
@@ -635,11 +661,11 @@ export function StockOverview({
         )}
         {mode === "category" && (
           <>
-            <StockCategoryTable rows={report.byCategory} />
+            <StockCategoryChart categories={report.byCategory} />
             <p className="operations-note">
-              Ordenado por valor al costo. La barra compara ese valor entre
-              categorías. Las cantidades separan unidades y kilos; «Para
-              reponer» cuenta los artículos en su mínimo o por debajo.
+              La barra muestra el stock de cada producto y la línea vertical, su
+              mínimo de reposición. Los productos por unidad y por peso usan
+              escalas separadas.
             </p>
           </>
         )}

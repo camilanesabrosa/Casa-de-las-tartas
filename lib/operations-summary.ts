@@ -264,16 +264,7 @@ export type StockArticle = {
   lastSale: string | null;
   coverageDays: number | null;
 };
-export type StockCategory = {
-  name: string;
-  articles: number;
-  inStock: number;
-  low: number;
-  units: number;
-  grams: number;
-  amount: number;
-  missingCosts: number;
-};
+export type StockCategory = { name: string; rows: StockArticle[] };
 export function stockSummary(data: Business, today = dateKey()) {
   const from = shiftDay(today, -29);
   const demand = new Map<string, { quantity: number; last: string | null }>();
@@ -323,29 +314,13 @@ export function stockSummary(data: Business, today = dateKey()) {
   const categories = new Map<string, StockCategory>(
     getProductCategories(data).map((name) => [
       categoryKey(name),
-      {
-        name,
-        articles: 0,
-        inStock: 0,
-        low: 0,
-        units: 0,
-        grams: 0,
-        amount: 0,
-        missingCosts: 0,
-      },
+      { name, rows: [] },
     ]),
   );
-  for (const row of rows) {
-    const category = categories.get(categoryKey(row.product.category))!;
-    category.articles++;
-    if (row.product.stock <= row.product.minimum) category.low++;
-    if (row.product.stock <= 0) continue;
-    category.inStock++;
-    category[row.product.unit === "kg" ? "grams" : "units"] +=
-      row.product.stock;
-    category.amount += row.amount;
-    if (!row.knownCost) category.missingCosts++;
-  }
+  for (const row of rows)
+    categories.get(categoryKey(row.product.category))!.rows.push(row);
+  for (const category of categories.values())
+    category.rows.sort((a, b) => a.name.localeCompare(b.name, "es"));
   return {
     today,
     from,
@@ -372,7 +347,7 @@ export function stockSummary(data: Business, today = dateKey()) {
         ),
     },
     byValue: [...withStock].sort(byAmount),
-    byCategory: [...categories.values()].sort(byAmount),
+    byCategory: [...categories.values()],
     idle: withStock.filter((row) => row.sold30Days === 0).sort(byAmount),
   };
 }
