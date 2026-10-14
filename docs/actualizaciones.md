@@ -40,7 +40,7 @@ La app consulta `https://sinnick.dev/cdt/update/latest.yml`.
 }
 ```
 
-La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.4.0.
+La ruta está habilitada en el VPS `vps` de Tailscale y publica la versión 0.5.0.
 La página de descarga es [sinnick.dev/cdt/](https://sinnick.dev/cdt/). Los archivos
 viven en `/var/www/cdt-download/`, separados del sitio principal y de Wiener.
 La configuración y el respaldo de Nginx están documentados en
@@ -102,6 +102,22 @@ SHA-256 del instalador 0.4.0:
 ```text
 063a3103f4636b9b8b06fddbf8111363fbbbfbde5ded830594f405c2e96c5d76
 ```
+
+La versión 0.5.0 se publicó el 14 de octubre de 2026. Incluye facturas de compra
+y proveedores, resúmenes de compras y stock, el gráfico de stock por categoría
+con el mínimo de reposición, arqueo de caja solo con efectivo, medio de pago en
+compras y gastos, retiro de mercadería «Para la casa» y limpieza de espacios en
+los nombres. Pasaron 135 pruebas, las 17 del actualizador y TypeScript. La
+descarga completa por HTTPS se verificó por tamaño, SHA-256 y SHA-512; también
+el blockmap y los rangos HTTP. El manifiesto se publicó atómicamente al final,
+conservando las versiones previas. SHA-256 del instalador 0.5.0:
+
+```text
+bc97c88b6f3081e855c7aafdee5f49fe8ff7a4f8c40ca3ae55d83d887a1b6dd4
+```
+
+La 0.5.0 agrega a SQLite, si faltan, las columnas `method` de `payments` y
+`expenses`. Los pagos anteriores quedan sin medio y se toman como efectivo.
 
 La migración de SQLite crea `product_categories` si falta, agrega su columna
 `code` si falta y agrega `registers.automatic` con valor inicial 0. No requiere

@@ -43,7 +43,7 @@ para mantener las bases existentes.
 
 El actualizador para Windows x64 avisa cuando hay una nueva versión y permite
 descargarla e instalarla con confirmación. Las preferencias se guardan en SQLite.
-La versión 0.4.0 está publicada en [Descargar Casa de las Tartas](https://sinnick.dev/cdt/).
+La versión 0.5.0 está publicada en [Descargar Casa de las Tartas](https://sinnick.dev/cdt/).
 El canal de actualización es `https://sinnick.dev/cdt/update/`. El flujo y los
 pasos de publicación están en [Actualizaciones](docs/actualizaciones.md).
 

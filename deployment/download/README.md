@@ -60,8 +60,34 @@ el HTML. Las descargas admiten rangos HTTP para el actualizador.
 La primera publicación se preparó completa en un directorio privado, se
 verificaron los cuatro archivos y luego se habilitó la ruta pública.
 
-La versión actual es 0.4.0, publicada el 4 de octubre de 2026. Se
+La versión actual es 0.5.0, publicada el 14 de octubre de 2026. Se
 conservaron los instaladores y blockmaps anteriores para las instalaciones existentes.
+
+## Verificación de 0.5.0
+
+Incluye facturas de compra y proveedores, resúmenes de compras y stock, el
+gráfico de stock por categoría, arqueo solo con efectivo, medio de pago en
+compras y gastos, retiro «Para la casa» y limpieza de espacios en los nombres.
+
+El instalador Windows x64 tiene 209.005.469 bytes. Se verificaron los hashes
+SHA-256 del HTML, instalador, blockmap y manifiesto en el directorio privado
+`/root/cdt-0.5.0.Od36wQGK/`. Allí quedaron `previous-index.html` y
+`previous-latest.yml` como respaldo de la publicación 0.4.0.
+
+Antes de activar el manifiesto se descargó el instalador completo por HTTPS.
+Coincidieron tamaño, SHA-256 y SHA-512, y se verificaron el hash del blockmap y
+las respuestas HTTP por rangos. SHA-256 del instalador:
+
+```text
+bc97c88b6f3081e855c7aafdee5f49fe8ff7a4f8c40ca3ae55d83d887a1b6dd4
+```
+
+La página y `latest.yml` se publicaron con renombrado atómico, el manifiesto
+como último paso. Los archivos tienen permisos `0644`. Nginx y
+`casadelastartas` siguieron activos sin reinicios, y el hash del manifiesto de
+Wiener no cambió. Pasaron 135 pruebas, las 17 del actualizador y TypeScript.
+Sigue pendiente probar la instalación y actualización en una PC o VM Windows
+x64. El instalador no está firmado.
 
 ## Verificación de 0.4.0
 
