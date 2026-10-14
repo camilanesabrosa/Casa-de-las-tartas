@@ -201,3 +201,25 @@ foto desde el formulario de edición; esa foto tiene prioridad.
 La carpeta `deployment/` conserva la publicación anterior en el VPS, que servía
 además un catálogo público. `deployment/download/` contiene la página y la
 configuración de Nginx para distribuir la aplicación de escritorio.
+
+## Resúmenes de compras y stock
+
+En **Resumen** están las vistas **Ventas**, **Compras** y **Stock**.
+Compras permite consultar día, semana calendario, mes o todo el historial hasta
+la fecha elegida. Ordena proveedores por importe comprado y artículos por gasto,
+cantidad o margen. Se separan cantidades por unidades y por peso. El costo
+promedio de compra se pondera por cantidad, no por número de facturas.
+
+El comprado se filtra por fecha de factura; el pagado, por fecha del pago, incluso
+si corresponde a una compra anterior. El pendiente corresponde al saldo **actual**
+de las facturas del período. Los proveedores archivados conservan su historial.
+El margen bruto real usa los precios y costos históricos de ventas no anuladas;
+el estimado usa el precio actual y el costo promedio de compras del período.
+Ambos expresan ganancia sobre el precio de venta y no descuentan gastos del negocio.
+Los datos ausentes se señalan en vez de atribuirles una ganancia.
+
+Stock es una fotografía de las existencias actuales. Muestra productos en el mínimo
+o por debajo, faltante para alcanzar ese mínimo, mayores existencias (unidades y
+peso separados), valor al costo actual y artículos con stock sin ventas en los
+últimos 30 días. El valor es parcial si hay artículos sin costo. La cobertura es
+una referencia basada en la cantidad vendida en esos 30 días; no predice la demanda.

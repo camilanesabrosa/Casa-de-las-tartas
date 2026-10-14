@@ -7,6 +7,7 @@ import { useDesktopDrive } from "./drive-backups";
 import { DailySalesShortcut } from "./daily-sales";
 import { ProfitView } from "./profit-view";
 import { CategorySales } from "./category-sales";
+import { SummaryTabs, PurchasesOverview, StockOverview, type OverviewTab } from "./operations-summary";
 import { useBusinessDay } from "@/hooks/use-business-day";
 import { allSalesFilters, todaySalesFilters, type SalesFilters } from "@/lib/sales";
 import { useState, useEffect, useRef } from "react";
@@ -82,6 +83,7 @@ export default function BusinessApp() {
   const [view, setView] = useState("overview");
   const [salesFilters, setSalesFilters] = useState<SalesFilters>(allSalesFilters);
   const [days, setDays] = useState(7);
+  const [overviewTab, setOverviewTab] = useState<OverviewTab>("sales");
   const [error, setError] = useState("");
   const [saleOpen, setSaleOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
@@ -305,23 +307,32 @@ export default function BusinessApp() {
           )}
           {view === "overview" ? (
             <>
-              <Dashboard
-                data={data}
-                days={days}
-                setDays={setDays}
-                navigate={navigate}
-                today={today}
-              />
-              <div className="dashboard-actions">
-                <Button className="btn" onClick={() => setCashOpen(true)}>
-                  <Plus />
-                  Aporte o retiro de dinero
-                </Button>
-                <Button className="btn" onClick={() => downloadJSON(data)}>
-                  <Download />
-                  Descargar respaldo
-                </Button>
-              </div>
+              <SummaryTabs value={overviewTab} onChange={setOverviewTab} />
+              {overviewTab === "purchases" ? (
+                <PurchasesOverview data={data} today={today} navigate={navigate} />
+              ) : overviewTab === "stock" ? (
+                <StockOverview data={data} today={today} navigate={navigate} />
+              ) : (
+                <>
+                  <Dashboard
+                    data={data}
+                    days={days}
+                    setDays={setDays}
+                    navigate={navigate}
+                    today={today}
+                  />
+                  <div className="dashboard-actions">
+                    <Button className="btn" onClick={() => setCashOpen(true)}>
+                      <Plus />
+                      Aporte o retiro de dinero
+                    </Button>
+                    <Button className="btn" onClick={() => downloadJSON(data)}>
+                      <Download />
+                      Descargar respaldo
+                    </Button>
+                  </div>
+                </>
+              )}
             </>
           ) : view === "calendar" ? (
             <CalendarView data={data} />

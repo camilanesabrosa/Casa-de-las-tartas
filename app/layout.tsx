@@ -7,6 +7,7 @@ import "./updates.css";
 import "./daily-sales.css";
 import "./profit.css";
 import "./category-sales.css";
+import "./operations-summary.css";
 import { appPath } from "@/lib/paths";
 import { APP_NAME } from "@/lib/branding";
 import { DesktopTitlebar } from "./desktop-titlebar";
