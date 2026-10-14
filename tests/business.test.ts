@@ -237,17 +237,27 @@ test("cantidades negativas, cero y precios inválidos se rechazan", () => {
       }),
     );
 });
-test("ajuste de merma no puede producir stock negativo", () => {
-  assert.throws(
-    () =>
-      applyAction(createDemo(), {
-        type: "adjustStock",
-        productId: "p16",
-        quantity: -3000,
-        reason: "Merma",
-      }),
-    /suficiente stock/,
-  );
+test("ajustar existencias reemplaza el stock actual y admite cero", () => {
+  const b = createDemo();
+  const p = b.products.find((p) => p.id === "p16")!;
+  const n = applyAction(b, { type: "adjustStock", productId: "p16", stock: p.stock + 5000, reason: "Recuento" });
+  assert.equal(n.products.find((p) => p.id === "p16")!.stock, p.stock + 5000);
+  assert.equal(n.movements.at(-1)!.quantity, 5000);
+  const z = applyAction(n, { type: "adjustStock", productId: "p16", stock: 0, reason: "Merma" });
+  assert.equal(z.products.find((p) => p.id === "p16")!.stock, 0);
+  assert.equal(z.movements.at(-1)!.quantity, -(p.stock + 5000));
+  assert.throws(() => applyAction(z, { type: "adjustStock", productId: "p16", stock: -1000, reason: "Merma" }));
+});
+test("eliminar un producto conserva sus ventas y permite anularlas", () => {
+  const b = createDemo();
+  const n = applyAction(b, { type: "sale", items: [{ productId: "p16", quantity: 333 }], method: "Efectivo" });
+  const v = n.sales.at(-1)!;
+  const d = applyAction(n, { type: "deleteProduct", id: "p16" });
+  assert.ok(!d.products.some((p) => p.id === "p16"));
+  assert.deepEqual(d.sales, n.sales);
+  const c = applyAction(d, { type: "cancelSale", id: v.id });
+  assert.ok(c.sales.at(-1)!.cancelled);
+  assert.throws(() => applyAction(d, { type: "deleteProduct", id: "p16" }), /No encontramos/);
 });
 test("las fechas de la muestra siguen el día de Argentina aunque UTC ya sea el siguiente", () => {
   const b = createDemo(new Date("2026-09-13T00:30:00Z"));
