@@ -12,11 +12,14 @@ listado aportado por Fernando; precios y movimientos son ejemplos.
 
 ```sh
 npm ci          # instalar dependencias
+npm run app:dev # abrir Electron con recarga de la interfaz, sin compilar
 npm run app     # construir y abrir la aplicación
 npm run app:dist  # generar el instalador en release/
 npm run app:dist:win  # generar el instalador Windows x64 (.exe) en release/
 npm run release:prepare  # preparar HTML y archivos para subir a sinnick.dev/cdt/
 ```
+
+El modo `app:dev` usa SQLite persistente en `.sites-runtime/desktop-dev/` y conecta Electron al servidor de desarrollo. No genera instaladores ni recompila el servidor de producción. Los cambios de interfaz se recargan al guardar; los cambios del proceso principal requieren reiniciar `app:dev`.
 
 Requiere Node 22.13 o posterior. `npm run dev` sigue abriendo la vista de
 desarrollo en el navegador, útil para iterar sobre la interfaz.
@@ -117,6 +120,30 @@ Desde Productos y stock → Categorías se puede elegir o cambiar la letra de ca
 categoría. Las letras deben ser únicas, con entre 1 y 3 caracteres de A a Z.
 Cambiar la letra modifica los códigos visibles de sus productos, sin cambiar
 los números de cartel ni los importes de ventas anteriores.
+
+## Compras y proveedores
+
+En **Gastos y compras → Compras y proveedores** se pueden crear y editar contactos,
+eliminar proveedores sin compras y dar de baja o reactivar los que tienen historial.
+Cada proveedor muestra el total comprado, pagado y pendiente. La baja conserva
+facturas, artículos, pagos y deudas; los saldos anteriores se pueden seguir pagando.
+
+**Nueva compra** permite elegir o crear el proveedor y cargar una factura con fecha,
+número de comprobante opcional y varios artículos. Cada renglón tiene cantidad,
+costo por unidad o kilo y subtotal. Para 250 gramos, ingresá 0,25 kg. Se pueden crear
+productos durante la compra, con un número de cartel disponible en su categoría.
+Reciben el stock de esa factura; después se carga su precio de venta en Productos.
+
+**Ver detalle** muestra los artículos y sus costos históricos, total, pagado,
+saldo y todos los pagos vinculados a la factura. **Registrar pago** admite pagos
+parciales sin volver a ingresar stock. El mismo número de comprobante no puede
+registrarse dos veces para un proveedor. Las compras, el stock de todos sus artículos
+y el pago inicial se guardan en una sola transacción SQLite.
+
+Las instalaciones anteriores se actualizan automáticamente con columnas adicionales
+y la tabla `purchase_items`, sin borrar información. Las compras de un solo artículo
+conservan sus totales, pagos, referencias, revisiones y stock. El costo unitario que
+no se guardaba antes se recupera del total y la cantidad registrados.
 
 ## Reglas de negocio
 

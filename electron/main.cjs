@@ -32,9 +32,16 @@ const HOST = "127.0.0.1";
 // electron-builder removes the build configuration from the packaged manifest.
 const APP_NAME = "Casa de las Tartas";
 const ICON = join(__dirname, "assets", "icon.png");
+const argument = (name) => process.argv.find((value) => value.startsWith(`${name}=`))?.slice(name.length + 1);
+const devUrl = !app.isPackaged ? process.env.CASA_DEV_URL || argument("--casa-dev-url") : undefined;
+if (devUrl) {
+  const url = new URL(devUrl);
+  if (url.protocol !== "http:" || !["localhost", "127.0.0.1"].includes(url.hostname) || url.username || url.password)
+    throw new Error("El servidor dev debe ser HTTP local.");
+}
 
 // Branding must never move an existing installation's SQLite file or settings.
-const testDataDirectory = process.env.CASA_TEST_DATA_DIR;
+const testDataDirectory = process.env.CASA_TEST_DATA_DIR || (!app.isPackaged ? argument("--casa-dev-data-dir") : undefined);
 if (testDataDirectory && !isAbsolute(testDataDirectory))
   throw new Error("CASA_TEST_DATA_DIR debe ser una ruta absoluta.");
 const dataDirectory = testDataDirectory
@@ -148,6 +155,7 @@ async function stopServerForRestore() {
 }
 
 async function restoreDriveBackup(fileId) {
+  if (devUrl) throw new Error("Para restaurar un respaldo, abrí la aplicación sin el servidor dev.");
   if (restoring) throw new Error("Ya hay una restauración en curso.");
   restoring = true;
   app.isRestoring = true;
@@ -254,6 +262,11 @@ function waitUntilReady(url, deadlineMs = 30000) {
 }
 
 async function start() {
+  if (devUrl) {
+    const response = await fetch(devUrl, { method: "HEAD", signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error("El servidor dev no respondió correctamente.");
+    return devUrl;
+  }
   const port = await freePort();
   const url = `http://${HOST}:${port}/`;
   server = fork(SERVER, {
