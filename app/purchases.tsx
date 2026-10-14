@@ -357,7 +357,7 @@ export function PurchaseEditor({
             Pagar todo
           </Button>
         </div>
-        {paidCents > 0 && <PaymentMethodChoice value={method} onChange={setMethod} />}
+        <PaymentMethodChoice value={method} onChange={setMethod} />
         <div className="purchase-totals" aria-live="polite">
           <div>
             <span>Total de la compra</span>
