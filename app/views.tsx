@@ -54,6 +54,8 @@ import {
   ProductDelete,
   ExpenseEditor,
   PayEditor,
+  PaymentMethodChoice,
+  type PaymentMethod,
   SaleDetail,
   Modal,
   Form,
@@ -413,6 +415,7 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
   const [section, setSection] = useState("gastos");
   const [add, setAdd] = useState(false);
   const [pay, setPay] = useState<Business["expenses"][number] | null>(null);
+  const [payMethod, setPayMethod] = useState<string>("Efectivo");
   const [editing, setEditing] = useState<Business["expenses"][number] | null>(null);
   const [removing, setRemoving] = useState<Business["expenses"][number] | null>(null);
   const [filter, setFilter] = useState("Todos");
@@ -528,8 +531,9 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
               <Form
                 close={() => setPay(null)}
                 label="Confirmar pago"
-                submit={() => save({ type: "payExpense", id: pay.id })}
+                submit={() => save({ type: "payExpense", id: pay.id, method: payMethod as PaymentMethod })}
               >
+                <PaymentMethodChoice value={payMethod} onChange={setPayMethod} />
                 <p>El importe se descontará del dinero disponible.</p>
               </Form>
             </Modal>

@@ -268,6 +268,11 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     await save({ type: "deleteExpense", id: expenseId });
     assert.equal(b.expenses.length, 0);
     assert.equal(summary(b).balance, 0);
+    await save({ type: "expense", name: "Gas", category: "Fijo", amount: 20000, paid: true, method: "Transferencia" });
+    assert.equal(b.expenses[0].method, "Transferencia");
+    assert.deepEqual(b.payments.filter((p) => p.reference === b.expenses[0].id).map((p) => p.method), ["Transferencia"]);
+    await save({ type: "deleteExpense", id: b.expenses[0].id });
+    assert.equal(summary(b).balance, 0);
     const id = b.products[0].id;
     await save({ type: "adjustStock", productId: id, stock: 2000, reason: "Prueba" });
     await save({ type: "productPrice", id, price: 700000 });

@@ -49,6 +49,7 @@ export type Expense = {
   category: "Fijo" | "Variable";
   amount: number;
   paid: boolean;
+  method?: string;
 };
 export type Movement = {
   id: string;
@@ -63,6 +64,8 @@ export type Payment = {
   amount: number;
   kind: "purchase" | "expense" | "deposit" | "withdrawal";
   reference: string;
+  // Compras y gastos guardan el medio. Sin medio = salió de la caja.
+  method?: string;
 };
 export type Register = {
   id: string;
@@ -230,16 +233,21 @@ export function autoCloseRegisters<T extends Business>(original: T, now = new Da
   next.version++;
   return next;
 }
-// Corte de turno sobre todos los medios de pago: lo que el turno debería haber
-// dejado es la apertura más todo lo que entró, menos todo lo que salió.
+// El arqueo cuenta solo el efectivo físico: la apertura más las ventas en
+// efectivo y los aportes, menos lo que se pagó o retiró de la caja.
+// Transferencias y tarjeta se informan en el cierre pero no entran acá.
+export const CASH_METHOD = "Efectivo";
+export const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Tarjeta"] as const;
+export const isCashPayment = (p: Pick<Payment, "method">) =>
+  !p.method || p.method === CASH_METHOD;
 export function registerExpected(b: Business, r: Register, until?: string) {
   const within = (date: string) =>
     date >= r.openedAt && (!until || date <= until);
   const sales = b.sales
-    .filter((s) => !s.cancelled && within(s.date))
+    .filter((s) => !s.cancelled && s.method === CASH_METHOD && within(s.date))
     .reduce((a, s) => a + s.total, 0);
   const moved = b.payments
-    .filter((x) => within(x.date))
+    .filter((x) => within(x.date) && isCashPayment(x))
     .reduce((a, x) => a + (x.kind === "deposit" ? x.amount : -x.amount), 0);
   return r.opening + sales + moved;
 }
@@ -251,12 +259,23 @@ export function registerBreakdown(b: Business, r: Register) {
   const byMethod = new Map<string, number>();
   for (const s of sales)
     byMethod.set(s.method, (byMethod.get(s.method) || 0) + s.total);
-  const paid = b.payments.filter((x) => within(x.date));
+  const inRange = b.payments.filter((x) => within(x.date));
+  const paid = inRange.filter(isCashPayment);
   const sum = (kind: Payment["kind"]) =>
     paid.filter((x) => x.kind === kind).reduce((a, x) => a + x.amount, 0);
+  const other = new Map<string, { kind: Payment["kind"]; method: string; amount: number }>();
+  for (const x of inRange) {
+    if (isCashPayment(x)) continue;
+    const key = `${x.kind}:${x.method}`;
+    const row = other.get(key) || { kind: x.kind, method: x.method!, amount: 0 };
+    row.amount += x.amount;
+    other.set(key, row);
+  }
   return {
     opening: r.opening,
     sales: [...byMethod].map(([method, amount]) => ({ method, amount })),
+    cashSales: byMethod.get(CASH_METHOD) || 0,
+    otherPayments: [...other.values()].filter((row) => row.amount !== 0),
     salesTotal: sales.reduce((a, s) => a + s.total, 0),
     salesCount: sales.length,
     deposits: sum("deposit"),

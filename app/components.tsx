@@ -35,6 +35,8 @@ import {
   productCode,
   getProductCategoryCodes,
   registerBreakdown,
+  CASH_METHOD,
+  PAYMENT_METHODS,
   openRegister,
 } from "@/lib/business";
 import { type Action } from "@/lib/actions";
@@ -486,6 +488,8 @@ export function ExpenseEditor({
   save: Save;
   close: () => void;
 }) {
+  const [paid, setPaid] = useState(expense?.paid ?? initialPaid);
+  const [method, setMethod] = useState<string>(expense?.method || CASH_METHOD);
   return (
     <Modal
       title={expense ? "Editar gasto" : "Registrar gasto"}
@@ -502,7 +506,8 @@ export function ExpenseEditor({
             name: string(f, "name"),
             category: string(f, "category") as Expense["category"],
             amount: cents(f, "amount"),
-            paid: f.get("paid") === "on",
+            paid,
+            method: method as PaymentMethod,
           })
         }
       >
@@ -523,11 +528,26 @@ export function ExpenseEditor({
           defaultValue={expense ? expense.amount / 100 : ""}
         />
         <label className="check-field">
-          <input name="paid" type="checkbox" defaultChecked={expense?.paid ?? initialPaid} />
+          <input name="paid" type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
           Ya lo pagué
         </label>
+        {paid && <PaymentMethodChoice value={method} onChange={setMethod} />}
       </Form>
     </Modal>
+  );
+}
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export function PaymentMethodChoice({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <Choice
+      label="Medio de pago"
+      value={value}
+      onChange={onChange}
+      options={PAYMENT_METHODS.map((m) => ({
+        value: m,
+        label: m === CASH_METHOD ? "Efectivo · sale de la caja" : m,
+      }))}
+    />
   );
 }
 export function PayEditor({
@@ -541,6 +561,7 @@ export function PayEditor({
   save: Save;
   close: () => void;
 }) {
+  const [method, setMethod] = useState<string>(CASH_METHOD);
   return (
     <Modal
       title="Registrar pago al proveedor"
@@ -551,9 +572,10 @@ export function PayEditor({
         close={close}
         label="Registrar pago"
         submit={(f) =>
-          save({ type: "payPurchase", id, amount: cents(f, "amount") })
+          save({ type: "payPurchase", id, amount: cents(f, "amount"), method: method as PaymentMethod })
         }
       >
+        <PaymentMethodChoice value={method} onChange={setMethod} />
         <Field
           label="Importe del pago · $"
           name="amount"
@@ -613,10 +635,11 @@ export function RegisterCloseEditor({
   const [counted, setCounted] = useState("");
   const typed = counted.trim() === "" ? null : Math.round(Number(counted) * 100);
   const difference = typed === null || Number.isNaN(typed) ? null : typed - d.expected;
+  const nonCash = d.sales.filter((s) => s.method !== CASH_METHOD);
   return (
     <Modal
       title="Cerrar caja"
-      description="Contá lo que hay y compará con lo que el turno debería haber dejado."
+      description="Contá el efectivo que hay en la caja y compará con lo que el turno debería haber dejado."
       close={close}
     >
       <Form
@@ -629,12 +652,10 @@ export function RegisterCloseEditor({
             <span>Apertura</span>
             <strong>{money(d.opening)}</strong>
           </div>
-          {d.sales.map((s) => (
-            <div key={s.method}>
-              <span>Ventas · {s.method.toLowerCase()}</span>
-              <strong>{money(s.amount)}</strong>
-            </div>
-          ))}
+          <div>
+            <span>Ventas · efectivo</span>
+            <strong>{money(d.cashSales)}</strong>
+          </div>
           {d.deposits > 0 && (
             <div>
               <span>Aportes</span>
@@ -649,23 +670,40 @@ export function RegisterCloseEditor({
           )}
           {d.purchases > 0 && (
             <div>
-              <span>Pagos a proveedores</span>
+              <span>Pagos a proveedores · efectivo</span>
               <strong className="negative">−{money(d.purchases)}</strong>
             </div>
           )}
           {d.expenses !== 0 && (
             <div>
-              <span>{d.expenses < 0 ? "Correcciones de gastos" : "Gastos pagados"}</span>
+              <span>{d.expenses < 0 ? "Correcciones de gastos" : "Gastos pagados"} · efectivo</span>
               <strong className={d.expenses > 0 ? "negative" : "positive"}>{money(-d.expenses)}</strong>
             </div>
           )}
           <div className="register-expected">
-            <span>Debería haber</span>
+            <span>Debería haber en efectivo</span>
             <strong>{money(d.expected)}</strong>
           </div>
         </div>
+        {nonCash.length + d.otherPayments.length > 0 && (
+          <div className="register-summary register-other">
+            <p>No entran en el arqueo</p>
+            {nonCash.map((s) => (
+              <div key={s.method}>
+                <span>Ventas · {s.method.toLowerCase()}</span>
+                <strong>{money(s.amount)}</strong>
+              </div>
+            ))}
+            {d.otherPayments.map((s) => (
+              <div key={`${s.kind}-${s.method}`}>
+                <span>{s.kind === "purchase" ? "Pagos a proveedores" : s.amount < 0 ? "Correcciones de gastos" : "Gastos pagados"} · {s.method.toLowerCase()}</span>
+                <strong className={s.amount > 0 ? "negative" : "positive"}>{money(-s.amount)}</strong>
+              </div>
+            ))}
+          </div>
+        )}
         <label className="field">
-          <span>Cuánto contaste · $</span>
+          <span>Efectivo contado · $</span>
           <Input
             name="counted"
             className="field-input"
@@ -688,7 +726,7 @@ export function RegisterCloseEditor({
         )}
         <p className="hint-box">
           {d.salesCount} {d.salesCount === 1 ? "venta" : "ventas"} en el turno.
-          Al cerrar, el dinero del sistema queda igual a lo que contaste.
+          Al cerrar, el efectivo del sistema queda igual a lo que contaste.
         </p>
       </Form>
     </Modal>

@@ -1746,6 +1746,10 @@ td small {
 .register-summary .negative {
   color: var(--red);
 }
+.register-other p {
+  margin: 0;
+  font-weight: 500;
+}
 .register-expected {
   border-top: 1px solid var(--border);
   margin-top: 4px;

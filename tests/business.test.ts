@@ -277,7 +277,7 @@ test("abrir caja registra el saldo inicial y no permite dos abiertas", () => {
     /Ya hay una caja abierta/,
   );
 });
-test("el turno suma todos los medios de pago desde la apertura", () => {
+test("el arqueo solo cuenta el efectivo y muestra los demás medios de pago", () => {
   const b = applyAction(createDemo(new Date("2026-09-20T23:00:00Z")), { type: "openRegister", opening: 2000000 }, "2026-09-21T09:00:00Z");
   let n = b;
   for (const method of ["Efectivo", "Transferencia", "Tarjeta"] as const)
@@ -295,9 +295,54 @@ test("el turno suma todos los medios de pago desde la apertura", () => {
     ["Efectivo", "Tarjeta", "Transferencia"],
   );
   assert.equal(d.withdrawals, 50000);
-  assert.equal(d.expected, 2000000 + d.salesTotal - 50000);
+  const efectivo = d.sales.find((s) => s.method === "Efectivo")!.amount;
+  assert.equal(d.cashSales, efectivo);
+  assert.ok(efectivo < d.salesTotal);
+  assert.equal(d.expected, 2000000 + efectivo - 50000);
   // Las ventas anteriores a la apertura no entran en el turno.
   assert.ok(d.salesTotal < n.sales.reduce((a, s) => a + s.total, 0));
+});
+test("el arqueo solo resta los pagos a proveedores hechos en efectivo", () => {
+  let b = applyAction(createDemo(new Date("2026-09-20T23:00:00Z")), { type: "openRegister", opening: 2000000 }, "2026-09-21T09:00:00Z");
+  const base = registerExpected(b, openRegister(b)!);
+  b = applyAction(b, { type: "purchase", supplierId: b.suppliers[0].id, items: [{ productId: "p11", quantity: 1000, cost: 100000 }], paid: 100000, method: "Transferencia" }, "2026-09-21T10:00:00Z");
+  const purchaseId = b.purchases.at(-1)!.id;
+  assert.equal(b.payments.at(-1)!.method, "Transferencia");
+  assert.equal(registerExpected(b, openRegister(b)!), base);
+  b = applyAction(b, { type: "purchase", supplierId: b.suppliers[0].id, items: [{ productId: "p11", quantity: 1000, cost: 100000 }], paid: 40000, method: "Efectivo" }, "2026-09-21T11:00:00Z");
+  assert.equal(registerExpected(b, openRegister(b)!), base - 40000);
+  b = applyAction(b, { type: "payPurchase", id: b.purchases.at(-1)!.id, amount: 60000, method: "Tarjeta" }, "2026-09-21T12:00:00Z");
+  assert.equal(registerExpected(b, openRegister(b)!), base - 40000);
+  const d = registerBreakdown(b, openRegister(b)!);
+  assert.equal(d.purchases, 40000);
+  assert.deepEqual(d.otherPayments.sort((x, y) => x.method.localeCompare(y.method)), [
+    { kind: "purchase", method: "Tarjeta", amount: 60000 },
+    { kind: "purchase", method: "Transferencia", amount: 100000 },
+  ]);
+  assert.ok(b.purchases.find((p) => p.id === purchaseId)!.paid === 100000);
+});
+test("el arqueo solo resta los gastos pagados en efectivo, también al editarlos", () => {
+  let b = applyAction(createDemo(new Date("2026-09-20T23:00:00Z")), { type: "openRegister", opening: 2000000 }, "2026-09-21T09:00:00Z");
+  const expected = () => registerExpected(b, openRegister(b)!);
+  const base = expected();
+  b = applyAction(b, { type: "expense", name: "Luz", category: "Fijo", amount: 30000, paid: true, method: "Transferencia" }, "2026-09-21T10:00:00Z");
+  const luz = b.expenses.at(-1)!;
+  assert.equal(luz.method, "Transferencia");
+  assert.equal(expected(), base);
+  b = applyAction(b, { type: "expense", id: luz.id, name: "Luz", category: "Fijo", amount: 30000, paid: true, method: "Efectivo" }, "2026-09-21T11:00:00Z");
+  assert.equal(expected(), base - 30000);
+  b = applyAction(b, { type: "expense", id: luz.id, name: "Luz", category: "Fijo", amount: 30000, paid: true, method: "Tarjeta" }, "2026-09-21T11:30:00Z");
+  assert.equal(expected(), base);
+  b = applyAction(b, { type: "expense", name: "Envases", category: "Variable", amount: 5000, paid: false }, "2026-09-21T12:00:00Z");
+  b = applyAction(b, { type: "payExpense", id: b.expenses.at(-1)!.id, method: "Efectivo" }, "2026-09-21T12:30:00Z");
+  assert.equal(expected(), base - 5000);
+  const before = summary(b).balance;
+  b = applyAction(b, { type: "deleteExpense", id: luz.id }, "2026-09-21T13:00:00Z");
+  assert.equal(expected(), base - 5000);
+  assert.equal(summary(b).balance, before + 30000);
+  const d = registerBreakdown(b, openRegister(b)!);
+  assert.equal(d.expenses, 5000);
+  assert.deepEqual(d.otherPayments, []);
 });
 test("cerrar caja asienta la diferencia y el saldo sigue al arqueo", () => {
   const b = applyAction(createDemo(new Date("2026-09-20T23:00:00Z")), { type: "openRegister", opening: 2000000 }, "2026-09-21T09:00:00Z");

@@ -32,7 +32,7 @@ import {
   money,
   quantityLabel,
 } from "@/lib/business";
-import { Choice, Field, Form, Modal, PayEditor, type Save } from "./components";
+import { Choice, Field, Form, Modal, PayEditor, PaymentMethodChoice, type Save } from "./components";
 
 const NEW = "__new__";
 const ALL = "__all__";
@@ -95,6 +95,7 @@ export function PurchaseEditor({
   ]);
   const nextKey = useRef(1);
   const [paid, setPaid] = useState("0");
+  const [method, setMethod] = useState<string>("Efectivo");
   const total = lines.reduce((sum, line) => sum + draftTotal(line), 0);
   const paidCents = Math.round(Number(paid) * 100) || 0;
   const update = (key: number, patch: Partial<DraftLine>) =>
@@ -125,6 +126,7 @@ export function PurchaseEditor({
             date: text(form, "date"),
             invoiceNumber: text(form, "invoice-number"),
             paid: paidCents,
+            method: method as "Efectivo" | "Transferencia" | "Tarjeta",
             items: lines.map((line) => ({
               ...(line.productId === NEW
                 ? {
@@ -355,6 +357,7 @@ export function PurchaseEditor({
             Pagar todo
           </Button>
         </div>
+        {paidCents > 0 && <PaymentMethodChoice value={method} onChange={setMethod} />}
         <div className="purchase-totals" aria-live="polite">
           <div>
             <span>Total de la compra</span>
@@ -486,7 +489,7 @@ function PurchaseDetail({
               <li key={payment.id}>
                 <span>
                   {invoiceDate(payment.date)}
-                  <small>{payment.id}</small>
+                  <small>{payment.id}{payment.method ? ` · ${payment.method}` : ""}</small>
                 </span>
                 <strong>{money(payment.amount)}</strong>
               </li>

@@ -6,6 +6,8 @@ import {
   lineTotal,
   openRegister,
   registerExpected,
+  PAYMENT_METHODS,
+  CASH_METHOD,
   getProductCategories,
   getProductCategoryCodes,
   autoCloseRegisters,
@@ -14,6 +16,7 @@ import {
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
 const text = z.string().trim().min(1).max(160);
+const paymentMethod = z.enum(PAYMENT_METHODS);
 const supplierFields = { name: text, phone: z.string().trim().max(40) };
 const purchaseProduct = z.object({
   name: text,
@@ -64,7 +67,7 @@ export const actionSchema = z.discriminatedUnion("type", [
       .array(z.object({ productId: text, quantity }))
       .min(1)
       .max(100),
-    method: z.enum(["Efectivo", "Transferencia", "Tarjeta"]),
+    method: paymentMethod,
   }),
   z.object({ type: z.literal("cancelSale"), id: text }),
   z.object({
@@ -94,11 +97,13 @@ export const actionSchema = z.discriminatedUnion("type", [
       z.object({ product: purchaseProduct, quantity, cost: amount.refine((n) => n > 0) }),
     ])).min(1, "Agregá al menos un artículo.").max(100).optional(),
     paid: amount,
+    method: paymentMethod.default("Efectivo"),
   }),
   z.object({
     type: z.literal("payPurchase"),
     id: text,
     amount: amount.refine((n) => n > 0),
+    method: paymentMethod.default("Efectivo"),
   }),
   z.object({
     type: z.literal("expense"),
@@ -107,8 +112,9 @@ export const actionSchema = z.discriminatedUnion("type", [
     category: z.enum(["Fijo", "Variable"]),
     amount: amount.refine((n) => n > 0),
     paid: z.boolean(),
+    method: paymentMethod.default("Efectivo"),
   }),
-  z.object({ type: z.literal("payExpense"), id: text }),
+  z.object({ type: z.literal("payExpense"), id: text, method: paymentMethod.default("Efectivo") }),
   z.object({ type: z.literal("deleteExpense"), id: text }),
   z.object({
     type: z.literal("cash"),
@@ -175,9 +181,10 @@ export function applyAction(
     kind: Business["payments"][number]["kind"],
     amount: number,
     reference: string,
+    method?: string,
   ) => {
     if (amount > 0)
-      b.payments.push({ id: id("P"), date: now, amount, kind, reference });
+      b.payments.push({ id: id("P"), date: now, amount, kind, reference, ...(method ? { method } : {}) });
   };
   const categoryName = (name: string) => {
     if (name.toLocaleLowerCase("es-AR") === "todos")
@@ -201,11 +208,19 @@ export function applyAction(
   };
   // Keep original payment dates and closed-register figures. Corrections belong
   // to today, including negative expense entries that reverse a mistaken charge.
-  const reconcileExpense = (expenseId: string, target: number) => {
-    const recorded = b.payments.filter((p) => p.kind === "expense" && p.reference === expenseId)
-      .reduce((total, p) => total + p.amount, 0);
-    const difference = target - recorded;
-    if (difference !== 0) b.payments.push({ id: id("P"), date: now, amount: difference, kind: "expense", reference: expenseId });
+  // Deja lo pagado del gasto en `target`, todo con el medio `method`. Si cambió
+  // el medio, revierte lo registrado con el anterior para que el arqueo lo siga.
+  const reconcileExpense = (expenseId: string, target: number, method = CASH_METHOD) => {
+    const recorded = new Map<string, number>([[method, 0]]);
+    for (const p of b.payments)
+      if (p.kind === "expense" && p.reference === expenseId) {
+        const m = p.method || CASH_METHOD;
+        recorded.set(m, (recorded.get(m) || 0) + p.amount);
+      }
+    for (const [m, total] of recorded) {
+      const difference = (m === method ? target : 0) - total;
+      if (difference !== 0) b.payments.push({ id: id("P"), date: now, amount: difference, kind: "expense", reference: expenseId, method: m });
+    }
   };
   switch (a.type) {
     case "productCategory":
@@ -439,7 +454,7 @@ export function applyAction(
         total,
         paid: a.paid,
       });
-      payment("purchase", a.paid, purchaseId);
+      payment("purchase", a.paid, purchaseId, a.method);
       break;
     }
     case "payPurchase": {
@@ -448,7 +463,7 @@ export function applyAction(
       if (a.amount > p.total - p.paid)
         throw new Error("El pago supera la deuda pendiente.");
       p.paid += a.amount;
-      payment("purchase", a.amount, p.id);
+      payment("purchase", a.amount, p.id, a.method);
       break;
     }
     case "expense": {
@@ -456,7 +471,9 @@ export function applyAction(
         const expense = b.expenses.find((e) => e.id === a.id);
         if (!expense) throw new Error("No encontramos ese gasto. Actualizá los datos.");
         Object.assign(expense, { name: a.name, category: a.category, amount: a.amount, paid: a.paid });
-        reconcileExpense(expense.id, expense.paid ? expense.amount : 0);
+        if (a.paid) expense.method = a.method;
+        else delete expense.method;
+        reconcileExpense(expense.id, expense.paid ? expense.amount : 0, a.method);
         break;
       }
       const expenseId = id("G");
@@ -467,8 +484,9 @@ export function applyAction(
         category: a.category,
         amount: a.amount,
         paid: a.paid,
+        ...(a.paid ? { method: a.method } : {}),
       });
-      if (a.paid) payment("expense", a.amount, expenseId);
+      if (a.paid) payment("expense", a.amount, expenseId, a.method);
       break;
     }
     case "deleteExpense": {
@@ -482,7 +500,8 @@ export function applyAction(
       const e = b.expenses.find((e) => e.id === a.id);
       if (!e || e.paid) throw new Error("El gasto no existe o ya está pagado.");
       e.paid = true;
-      payment("expense", e.amount, e.id);
+      e.method = a.method;
+      payment("expense", e.amount, e.id, a.method);
       break;
     }
     case "cash":
