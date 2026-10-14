@@ -103,7 +103,7 @@ test("categorías nuevas tienen códigos estables, aparecen vacías y se conserv
 test("cambiar milanesas de $7000 a $9000 solo cambia la siguiente venta, incluyendo venta por peso", () => {
   let b = createFreshBusiness();
   const product = b.products[0];
-  b = applyAction(b, { type: "adjustStock", productId: product.id, quantity: 3000, reason: "Prueba" });
+  b = applyAction(b, { type: "adjustStock", productId: product.id, stock: 3000, reason: "Prueba" });
   b = applyAction(b, { type: "productPrice", id: product.id, price: 700000 });
   b = applyAction(b, { type: "sale", items: [{ productId: product.id, quantity: 1000 }], method: "Efectivo" });
   const originalSale = structuredClone(b.sales[0]);
@@ -122,7 +122,7 @@ test("cambiar milanesas de $7000 a $9000 solo cambia la siguiente venta, incluye
 test("renombrar categorías iniciales y nuevas conserva letras, productos e historial", () => {
   let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Milanesas" });
   const product = b.products[0];
-  b = applyAction(b, { type: "adjustStock", productId: product.id, quantity: 1000, reason: "Prueba" });
+  b = applyAction(b, { type: "adjustStock", productId: product.id, stock: 1000, reason: "Prueba" });
   b = applyAction(b, { type: "sale", items: [{ productId: product.id, quantity: 500 }], method: "Efectivo" });
   const sales = structuredClone(b.sales);
   const before = b.products.filter((p) => p.category === "Precocidos").map((p) => ({ ...p, category: "Listos para cocinar" }));
@@ -209,7 +209,7 @@ test("se puede elegir y cambiar la letra de una categoría sin modificar product
   let b = applyAction(createFreshBusiness(), { type: "productCategory", name: "Milanesas", code: " m " });
   assert.equal(getProductCategoryCodes(b).Milanesas, "M");
   const product = b.products[0];
-  b = applyAction(b, { type: "adjustStock", productId: product.id, quantity: 1000, reason: "Prueba" });
+  b = applyAction(b, { type: "adjustStock", productId: product.id, stock: 1000, reason: "Prueba" });
   b = applyAction(b, { type: "sale", items: [{ productId: product.id, quantity: 500 }], method: "Efectivo" });
   const products = structuredClone(b.products);
   const sales = structuredClone(b.sales);
@@ -269,7 +269,7 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     assert.equal(b.expenses.length, 0);
     assert.equal(summary(b).balance, 0);
     const id = b.products[0].id;
-    await save({ type: "adjustStock", productId: id, quantity: 2000, reason: "Prueba" });
+    await save({ type: "adjustStock", productId: id, stock: 2000, reason: "Prueba" });
     await save({ type: "productPrice", id, price: 700000 });
     await save({ type: "sale", items: [{ productId: id, quantity: 1000 }], method: "Efectivo" });
     await save({ type: "productPrice", id, price: 900000 });
@@ -286,6 +286,37 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     assert.ok(!getProductCategories(b).includes("Congelados"));
     assert.equal(getProductCategoryCodes(b).Pastas, "C");
     assert.deepEqual(b.sales, previousSales);
+    // Receipt lines and supplier state must survive real SQLite round trips.
+    const invoiceAction = { type: "purchase", supplier: { name: "Proveedor de factura", phone: "261123456" },
+      invoiceNumber: "SQL-101", date: "2026-10-04", paid: 3000,
+      items: [{ productId: id, quantity: 500, cost: 10000 },
+        { product: { name: "Artículo de factura", unit: "unit", category: "Varios" }, quantity: 2000, cost: 2500 }] };
+    const invoiceRequest = randomUUID();
+    const invoiceVersion = b.version;
+    b = await updateBusiness(owner, invoiceVersion, invoiceRequest, invoiceAction);
+    const invoice = structuredClone(b.purchases.at(-1)!);
+    b = await readBusiness(owner);
+    assert.deepEqual(b.purchases.at(-1), invoice);
+    assert.equal(invoice.total, 10000);
+    assert.equal(invoice.items!.length, 2);
+    assert.equal(invoice.items![1].total, 5000);
+    const purchasedProduct = b.products.find((product) => product.id === invoice.items![1].productId)!;
+    assert.equal(purchasedProduct.stock, 2000);
+    assert.ok(purchasedProduct.number >= 1);
+    const stockBeforePayment = structuredClone(b.products);
+    const retriedInvoice = await updateBusiness(owner, invoiceVersion, invoiceRequest, invoiceAction);
+    assert.equal(retriedInvoice.version, b.version);
+    assert.deepEqual(retriedInvoice.products, stockBeforePayment);
+    await save({ type: "payPurchase", id: invoice.id, amount: 2000 });
+    assert.equal(b.purchases.at(-1)!.paid, 5000);
+    assert.deepEqual(b.products, stockBeforePayment);
+    await save({ type: "supplier", id: invoice.supplierId, name: "Proveedor editado", phone: "" });
+    assert.equal(b.purchases.at(-1)!.supplierName, "Proveedor de factura");
+    await save({ type: "removeSupplier", id: invoice.supplierId });
+    assert.equal(b.suppliers.find((s) => s.id === invoice.supplierId)!.archived, true);
+    assert.equal(b.purchases.at(-1)!.items![1].name, "Artículo de factura");
+    await save({ type: "restoreSupplier", id: invoice.supplierId });
+    assert.equal(b.suppliers.find((s) => s.id === invoice.supplierId)!.archived, false);
     await save({ type: "resetBusiness" });
     assert.ok(getProductCategories(b).includes("Panadería"));
     await save({ type: "deleteProductCategory", name: "Panadería" });
@@ -324,8 +355,23 @@ test("SQLite conserva categorías vacías, gastos editados y precios históricos
     assert.deepEqual(JSON.parse(JSON.stringify(retried)), JSON.parse(JSON.stringify(persistedNextDay)), "un reintento tampoco duplica la apertura");
     assert.equal(retried.version, nextDay.version);
     assert.equal(retried.registers.length, 2);
+    // Import the one-product JSON format used by older installations.
+    const legacyOwner = "legacy-purchase-tests";
+    const legacy = createFreshBusiness();
+    legacy.suppliers = [{ id: "LS", name: "Proveedor anterior", phone: "" }];
+    legacy.purchases = [{ id: "LC", date: opening, supplierId: "LS", productId: legacy.products[0].id, quantity: 250, total: 19000, paid: 4000 }];
+    legacy.payments = [{ id: "LP", date: opening, kind: "purchase", reference: "LC", amount: 4000 }];
     const checkDatabase = new DatabaseSync(process.env.MOSTRADOR_DATABASE_PATH);
     try {
+      checkDatabase.prepare("INSERT INTO businesses (owner_id, revision, payload, updated_at) VALUES (?, ?, ?, ?)").run(legacyOwner, legacy.version, JSON.stringify(legacy), opening);
+      const migrated = await readBusiness(legacyOwner, opening);
+      assert.equal(migrated.version, legacy.version);
+      assert.deepEqual(migrated.products, legacy.products);
+      assert.deepEqual(migrated.payments, legacy.payments);
+      assert.equal(migrated.purchases[0].items![0].total, 19000);
+      assert.equal(migrated.purchases[0].items![0].cost, 76000);
+      assert.equal(migrated.purchases[0].supplierName, "Proveedor anterior");
+      assert.equal(checkDatabase.prepare("SELECT COUNT(*) AS count FROM purchase_items WHERE owner_id = ?").get(legacyOwner)!.count, 1);
       const row = checkDatabase.prepare("SELECT automatic, counted, difference FROM registers WHERE owner_id = ? AND id = ?").get(registerOwner, nextDay.registers[0].id);
       assert.equal(row!.automatic, 1);
       assert.equal(row!.counted, null);

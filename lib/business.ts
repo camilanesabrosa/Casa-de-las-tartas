@@ -28,11 +28,15 @@ export type Sale = {
   method: string;
   cancelled: boolean;
 };
-export type Supplier = { id: string; name: string; phone: string };
+export type Supplier = { id: string; name: string; phone: string; archived?: boolean };
+export type PurchaseLine = { productId: string; name: string; quantity: number; unit: Product["unit"]; cost: number; total: number };
 export type Purchase = {
   id: string;
   date: string;
   supplierId: string;
+  supplierName?: string;
+  invoiceNumber?: string;
+  items?: PurchaseLine[];
   productId: string;
   quantity: number;
   total: number;
@@ -84,6 +88,33 @@ export type Business = {
   payments: Payment[];
   registers: Register[];
 };
+export type PurchaseInvoice = Purchase & { supplierName: string; invoiceNumber: string; items: PurchaseLine[] };
+export type InvoiceBusiness = Omit<Business, "purchases"> & { purchases: PurchaseInvoice[] };
+// Upgrade the old one-product purchases without changing balances, stock,
+// payment references or revisions. The next successful write persists this shape.
+export function normalizeBusiness<T extends Business>(business: T): Omit<T, "purchases"> & InvoiceBusiness {
+  return {
+    ...business,
+    purchases: business.purchases.map((purchase): PurchaseInvoice => {
+      if (purchase.items?.length) return { ...purchase, items: purchase.items, supplierName: purchase.supplierName || business.suppliers.find((s) => s.id === purchase.supplierId)?.name || "Proveedor", invoiceNumber: purchase.invoiceNumber || "" };
+      const { productId, quantity } = purchase;
+      const product = business.products.find((p) => p.id === productId);
+      return {
+        ...purchase,
+        supplierName: business.suppliers.find((s) => s.id === purchase.supplierId)?.name || "Proveedor",
+        invoiceNumber: "",
+        items: [{
+          productId,
+          name: product ? [product.name, product.variety].filter(Boolean).join(" · ") : "Producto",
+          unit: product?.unit || "unit",
+          quantity,
+          cost: Math.round(purchase.total * 1000 / quantity),
+          total: purchase.total,
+        }],
+      };
+    }),
+  };
+}
 export const categories = [
   "Precocidos",
   "Congelados",

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   type Business,
+  normalizeBusiness,
   type Product,
   lineTotal,
   openRegister,
@@ -13,6 +14,17 @@ import {
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
 const text = z.string().trim().min(1).max(160);
+const supplierFields = { name: text, phone: z.string().trim().max(40) };
+const purchaseProduct = z.object({
+  name: text,
+  variety: z.string().trim().max(160).default(""),
+  category: text.default("Varios"),
+  unit: z.enum(["unit", "kg"]),
+});
+const purchaseDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((date) => {
+  const parsed = new Date(`${date}T12:00:00-03:00`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}, "Ingresá una fecha válida.");
 const categoryCode = z.string().trim().toUpperCase().regex(/^[A-Z]{1,3}$/, "Usá entre 1 y 3 letras de A a Z, sin números ni símbolos.");
 const productSchema = z.object({
   id: z.string().optional(),
@@ -41,6 +53,7 @@ const productSchema = z.object({
 export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("resetBusiness") }),
   z.object({ type: z.literal("product"), product: productSchema }),
+  z.object({ type: z.literal("deleteProduct"), id: text }),
   z.object({ type: z.literal("productCategory"), name: text, code: categoryCode.optional() }),
   z.object({ type: z.literal("renameProductCategory"), name: text, newName: text, code: categoryCode.optional() }),
   z.object({ type: z.literal("deleteProductCategory"), name: text, targetCategory: text.optional() }),
@@ -57,26 +70,29 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("adjustStock"),
     productId: text,
-    quantity: z
-      .number()
-      .int()
-      .min(-1_000_000_000)
-      .max(1_000_000_000)
-      .refine((n) => n !== 0),
+    stock: amount,
     reason: text,
   }),
   z.object({
     type: z.literal("supplier"),
-    id: z.string().optional(),
-    name: text,
-    phone: z.string().trim().max(40),
+    id: text.optional(),
+    ...supplierFields,
   }),
+  z.object({ type: z.literal("removeSupplier"), id: text }),
+  z.object({ type: z.literal("restoreSupplier"), id: text }),
   z.object({
     type: z.literal("purchase"),
-    supplierId: text,
-    productId: text,
-    quantity,
-    cost: amount.refine((n) => n > 0),
+    supplierId: text.optional(),
+    supplier: z.object(supplierFields).optional(),
+    date: purchaseDate.optional(),
+    invoiceNumber: z.string().trim().max(80).default(""),
+    productId: text.optional(),
+    quantity: quantity.optional(),
+    cost: amount.refine((n) => n > 0).optional(),
+    items: z.array(z.union([
+      z.object({ productId: text, quantity, cost: amount.refine((n) => n > 0) }),
+      z.object({ product: purchaseProduct, quantity, cost: amount.refine((n) => n > 0) }),
+    ])).min(1, "Agregá al menos un artículo.").max(100).optional(),
     paid: amount,
   }),
   z.object({
@@ -127,7 +143,7 @@ export function applyAction(
   now = new Date().toISOString(),
 ): Business {
   const a = actionSchema.parse(raw);
-  const b = structuredClone(autoCloseRegisters(original, now));
+  const b = structuredClone(normalizeBusiness(autoCloseRegisters(original, now)));
   b.productCategories = getProductCategories(b);
   b.productCategoryCodes = getProductCategoryCodes(b);
   const id = (prefix: string) =>
@@ -269,6 +285,11 @@ export function applyAction(
       }
       break;
     }
+    case "deleteProduct": {
+      const p = getProduct(a.id);
+      b.products = b.products.filter((other) => other !== p);
+      break;
+    }
     case "sale": {
       const combined = new Map<string, number>();
       for (const i of a.items)
@@ -278,6 +299,7 @@ export function applyAction(
         );
       const items = Array.from(combined, ([pid, q]) => {
         const p = getProduct(pid);
+        if (p.price <= 0) throw new Error(`Cargá el precio de venta de ${p.name} en Productos antes de venderlo.`);
         validQty(p, q);
         if (p.stock < q)
           throw new Error(
@@ -316,13 +338,20 @@ export function applyAction(
       if (!sale || sale.cancelled)
         throw new Error("La venta no existe o ya está anulada.");
       sale.cancelled = true;
-      for (const i of sale.items)
-        move(getProduct(i.productId), i.quantity, `Anulación ${sale.id}`);
+      for (const i of sale.items) {
+        const p = b.products.find((p) => p.id === i.productId);
+        if (p) move(p, i.quantity, `Anulación ${sale.id}`);
+      }
       break;
     }
-    case "adjustStock":
-      move(getProduct(a.productId), a.quantity, a.reason);
+    case "adjustStock": {
+      const p = getProduct(a.productId);
+      validQty(p, a.stock);
+      if (a.stock === p.stock)
+        throw new Error("Las existencias ya tienen ese valor.");
+      move(p, a.stock - p.stock, a.reason);
       break;
+    }
     case "supplier": {
       if (a.id) {
         const s = b.suppliers.find((s) => s.id === a.id);
@@ -331,23 +360,82 @@ export function applyAction(
       } else b.suppliers.push({ id: id("PROV"), name: a.name, phone: a.phone });
       break;
     }
+    case "removeSupplier": {
+      const supplier = b.suppliers.find((s) => s.id === a.id);
+      if (!supplier) throw new Error("Proveedor no encontrado.");
+      if (b.purchases.some((p) => p.supplierId === a.id)) supplier.archived = true;
+      else b.suppliers = b.suppliers.filter((s) => s.id !== a.id);
+      break;
+    }
+    case "restoreSupplier": {
+      const supplier = b.suppliers.find((s) => s.id === a.id);
+      if (!supplier) throw new Error("Proveedor no encontrado.");
+      supplier.archived = false;
+      break;
+    }
     case "purchase": {
-      if (!b.suppliers.some((s) => s.id === a.supplierId))
-        throw new Error("Seleccioná un proveedor.");
-      const p = getProduct(a.productId);
-      validQty(p, a.quantity);
-      const total = lineTotal(a.cost, a.quantity);
+      if (Boolean(a.supplierId) === Boolean(a.supplier))
+        throw new Error("Seleccioná un proveedor o cargá uno nuevo.");
+      const supplier = a.supplier
+        ? { id: id("PROV"), ...a.supplier, archived: false }
+        : b.suppliers.find((s) => s.id === a.supplierId);
+      if (!supplier || supplier.archived)
+        throw new Error("Seleccioná un proveedor activo.");
+      if (a.invoiceNumber && b.purchases.some((p) =>
+        p.supplierId === supplier.id && p.invoiceNumber.toLowerCase() === a.invoiceNumber.toLowerCase()))
+        throw new Error("Ya registraste ese comprobante para este proveedor.");
+      const inputItems = a.items ?? (a.productId && a.quantity && a.cost ? [{ productId: a.productId, quantity: a.quantity, cost: a.cost }] : []);
+      if (!inputItems.length) throw new Error("Agregá al menos un artículo.");
+      const items = inputItems.map((item) => {
+        let product: Product;
+        if ("productId" in item) product = getProduct(item.productId);
+        else {
+          if (b.products.length >= 500) throw new Error("Esta muestra admite hasta 500 variedades de productos.");
+          const fresh = item.product;
+          if (b.products.some((p) => p.name.toLowerCase() === fresh.name.toLowerCase()
+            && p.variety.toLowerCase() === fresh.variety.toLowerCase()))
+            throw new Error(`Ya existe ${fresh.name}. Seleccionalo en la lista de productos.`);
+          const category = categoryName(fresh.category);
+          const used = new Set(b.products.filter((p) => p.category === category).map((p) => p.number));
+          let number = 1;
+          while (used.has(number)) number++;
+          if (number > 999) throw new Error("Esta categoría no tiene números de cartel disponibles.");
+          product = { ...fresh, category, number, id: id("ART"), price: 0, cost: item.cost, stock: 0, minimum: 0, published: false };
+          b.products.push(product);
+        }
+        validQty(product, item.quantity);
+        const total = lineTotal(item.cost, item.quantity);
+        if (total <= 0) throw new Error("El importe de cada artículo debe ser mayor que cero.");
+        return {
+          productId: product.id,
+          name: [product.name, product.variety].filter(Boolean).join(" · "),
+          unit: product.unit,
+          quantity: item.quantity,
+          cost: item.cost,
+          total,
+        };
+      });
+      const total = items.reduce((sum, item) => sum + item.total, 0);
+      if (!Number.isSafeInteger(total) || total > 100_000_000_000)
+        throw new Error("El importe supera el máximo permitido.");
       if (a.paid > total)
         throw new Error("El pago no puede superar el total de la compra.");
       const purchaseId = id("C");
-      move(p, a.quantity, `Compra ${purchaseId}`);
-      p.cost = a.cost;
+      if (a.supplier) b.suppliers.push(supplier);
+      for (const item of items) {
+        const product = getProduct(item.productId);
+        move(product, item.quantity, `Compra ${purchaseId}`);
+        product.cost = item.cost;
+      }
       b.purchases.push({
         id: purchaseId,
-        date: now,
-        supplierId: a.supplierId,
-        productId: p.id,
-        quantity: a.quantity,
+        date: a.date ? `${a.date}T12:00:00-03:00` : now,
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        invoiceNumber: a.invoiceNumber,
+        items,
+        productId: items[0].productId,
+        quantity: items[0].quantity,
         total,
         paid: a.paid,
       });

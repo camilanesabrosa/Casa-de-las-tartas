@@ -393,6 +393,36 @@ export function PriceEditor({ product, save, close }: { product: Product; save: 
     </Modal>
   );
 }
+export function ProductDelete({
+  product,
+  save,
+  close,
+}: {
+  product: Product;
+  save: Save;
+  close: () => void;
+}) {
+  return (
+    <Modal
+      title="Eliminar producto"
+      description={[product.name, product.variety].filter(Boolean).join(" · ")}
+      close={close}
+    >
+      <Form
+        close={close}
+        label="Eliminar"
+        destructive
+        submit={() => save({ type: "deleteProduct", id: product.id })}
+      >
+        <p className="hint-box">
+          Deja de aparecer en productos, ventas y compras nuevas y en el
+          catálogo. Las ventas y compras ya registradas se conservan. Esta
+          acción no se puede deshacer.
+        </p>
+      </Form>
+    </Modal>
+  );
+}
 export function StockEditor({
   product,
   save,
@@ -402,7 +432,7 @@ export function StockEditor({
   save: Save;
   close: () => void;
 }) {
-  const [kind, setKind] = useState("in");
+  const scale = product.unit === "unit" ? 1000 : 1;
   return (
     <Modal
       title="Ajustar existencias"
@@ -411,39 +441,24 @@ export function StockEditor({
     >
       <Form
         close={close}
-        label="Guardar movimiento"
+        label="Guardar existencias"
         submit={(f) =>
           save({
             type: "adjustStock",
             productId: product.id,
-            quantity:
-              Math.round(
-                num(f, "quantity") * (product.unit === "unit" ? 1000 : 1),
-              ) * (kind === "out" ? -1 : 1),
+            stock: Math.round(num(f, "stock") * scale),
             reason: string(f, "reason"),
           })
         }
       >
-        <Choice
-          label="Tipo de movimiento"
-          value={kind}
-          onChange={setKind}
-          options={[
-            { value: "in", label: "Entrada · elaboración o corrección" },
-            { value: "out", label: "Salida · merma o corrección" },
-          ]}
-        />
         <Field
-          label={`Cantidad · ${product.unit === "kg" ? "gramos" : "unidades"}`}
-          name="quantity"
+          label={`Existencias reales · ${product.unit === "kg" ? "gramos" : "unidades"}`}
+          name="stock"
           type="number"
-          min={1}
+          min={0}
           step="1"
-          hint={
-            product.unit === "kg"
-              ? "Por ejemplo, 250 para un cuarto de kilo."
-              : undefined
-          }
+          defaultValue={product.stock / scale}
+          hint="Reemplaza el stock actual. Ingresá 0 si no queda nada."
         />
         <Field
           label="Motivo"
@@ -451,90 +466,9 @@ export function StockEditor({
           hint="Por ejemplo: elaboración del día, vencimiento o recuento."
         />
         <p className="hint-box">
-          Si recibiste una compra, usá “Ingresó mercadería” en Proveedores para
+          Si recibiste una compra, usá “Registrar compra” en Proveedores para
           registrar también su costo y el pago.
         </p>
-      </Form>
-    </Modal>
-  );
-}
-export function PurchaseEditor({
-  data,
-  save,
-  close,
-  supplierId,
-}: {
-  data: Business;
-  save: Save;
-  close: () => void;
-  supplierId?: string;
-}) {
-  const [pid, setPid] = useState(data.products[0]?.id || "");
-  const [sid, setSid] = useState(supplierId || data.suppliers[0]?.id || "");
-  const p = data.products.find((p) => p.id === pid);
-  return (
-    <Modal
-      title="Ingresó mercadería"
-      description="Sumá el stock recibido y registrá cuánto pagaste."
-      close={close}
-    >
-      <Form
-        close={close}
-        label="Registrar compra"
-        submit={(f) =>
-          save({
-            type: "purchase",
-            supplierId: sid,
-            productId: pid,
-            quantity: Math.round(
-              num(f, "quantity") * (p?.unit === "unit" ? 1000 : 1),
-            ),
-            cost: cents(f, "cost"),
-            paid: cents(f, "paid"),
-          })
-        }
-      >
-        <Choice
-          label="Proveedor"
-          value={sid}
-          onChange={setSid}
-          options={data.suppliers.map((s) => ({ value: s.id, label: s.name }))}
-        />
-        <Choice
-          label="Producto"
-          value={pid}
-          onChange={setPid}
-          options={data.products.map((p) => ({
-            value: p.id,
-            label: [p.name, p.variety].filter(Boolean).join(" · "),
-          }))}
-        />
-        <div key={pid} className="form-grid">
-          <Field
-            label={`Cantidad recibida · ${p?.unit === "kg" ? "gramos" : "unidades"}`}
-            name="quantity"
-            type="number"
-            min={1}
-            step="1"
-          />
-          <Field
-            label={`Costo por ${p?.unit === "kg" ? "kg" : "unidad"} · $`}
-            name="cost"
-            type="number"
-            min={0.01}
-            step="0.01"
-            defaultValue={(p?.cost || 0) / 100}
-          />
-        </div>
-        <Field
-          label="Pagado ahora · $"
-          name="paid"
-          type="number"
-          min={0}
-          step="0.01"
-          defaultValue={0}
-          hint="Dejá 0 si todavía no pagaste. La diferencia queda como deuda."
-        />
       </Form>
     </Modal>
   );
@@ -592,35 +526,6 @@ export function ExpenseEditor({
           <input name="paid" type="checkbox" defaultChecked={expense?.paid ?? initialPaid} />
           Ya lo pagué
         </label>
-      </Form>
-    </Modal>
-  );
-}
-export function SupplierEditor({
-  save,
-  close,
-}: {
-  save: Save;
-  close: () => void;
-}) {
-  return (
-    <Modal
-      title="Nuevo proveedor"
-      description="Guardá el contacto de quien te vende la mercadería."
-      close={close}
-    >
-      <Form
-        close={close}
-        submit={(f) =>
-          save({
-            type: "supplier",
-            name: string(f, "name"),
-            phone: string(f, "phone"),
-          })
-        }
-      >
-        <Field label="Nombre" name="name" />
-        <Field label="Teléfono · opcional" name="phone" required={false} />
       </Form>
     </Modal>
   );
@@ -980,13 +885,13 @@ export function SaleEditor({
                   className="pos-product"
                   key={p.id}
                   onClick={() => add(p)}
-                  disabled={p.stock <= 0 || busy}
+                  disabled={p.stock <= 0 || p.price <= 0 || busy}
                 >
                   <div>
                     <strong>{p.name}</strong>
                     <small>{p.variety || p.category}</small>
                     <span>
-                      {money(p.price)} / {p.unit === "kg" ? "kg" : "un."}
+                      {p.price > 0 ? `${money(p.price)} / ${p.unit === "kg" ? "kg" : "un."}` : "Cargá el precio en Productos"}
                     </span>
                   </div>
                   <div>

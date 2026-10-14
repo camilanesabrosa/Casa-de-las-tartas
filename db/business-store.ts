@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { autoCloseRegisters, createFreshBusiness, getProductCategories, getProductCategoryCodes, withProductNumbers, withRegisters, type Business } from "@/lib/business";
+import { normalizeBusiness, type PurchaseLine, autoCloseRegisters, createFreshBusiness, getProductCategories, getProductCategoryCodes, withProductNumbers, withRegisters, type Business } from "@/lib/business";
 import { applyAction } from "@/lib/actions";
 
 type Stored = Business & { completedRequests?: string[] };
@@ -19,6 +19,7 @@ const tables = [
   `CREATE TABLE IF NOT EXISTS sales (owner_id TEXT NOT NULL, id TEXT NOT NULL, date TEXT NOT NULL, total INTEGER NOT NULL, method TEXT NOT NULL, cancelled INTEGER NOT NULL, PRIMARY KEY (owner_id, id))`,
   `CREATE TABLE IF NOT EXISTS sale_items (owner_id TEXT NOT NULL, sale_id TEXT NOT NULL, position INTEGER NOT NULL, product_id TEXT NOT NULL, name TEXT NOT NULL, quantity INTEGER NOT NULL, unit TEXT NOT NULL, price INTEGER NOT NULL, cost INTEGER NOT NULL, PRIMARY KEY (owner_id, sale_id, position))`,
   `CREATE TABLE IF NOT EXISTS purchases (owner_id TEXT NOT NULL, id TEXT NOT NULL, date TEXT NOT NULL, supplier_id TEXT NOT NULL, product_id TEXT NOT NULL, quantity INTEGER NOT NULL, total INTEGER NOT NULL, paid INTEGER NOT NULL, PRIMARY KEY (owner_id, id))`,
+  `CREATE TABLE IF NOT EXISTS purchase_items (owner_id TEXT NOT NULL, purchase_id TEXT NOT NULL, position INTEGER NOT NULL, product_id TEXT NOT NULL, name TEXT NOT NULL, quantity INTEGER NOT NULL, unit TEXT NOT NULL, cost INTEGER NOT NULL, total INTEGER NOT NULL, PRIMARY KEY (owner_id, purchase_id, position))`,
   `CREATE TABLE IF NOT EXISTS expenses (owner_id TEXT NOT NULL, id TEXT NOT NULL, date TEXT NOT NULL, name TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, paid INTEGER NOT NULL, PRIMARY KEY (owner_id, id))`,
   `CREATE TABLE IF NOT EXISTS movements (owner_id TEXT NOT NULL, id TEXT NOT NULL, date TEXT NOT NULL, product_id TEXT NOT NULL, quantity INTEGER NOT NULL, reason TEXT NOT NULL, PRIMARY KEY (owner_id, id))`,
   `CREATE TABLE IF NOT EXISTS payments (owner_id TEXT NOT NULL, id TEXT NOT NULL, date TEXT NOT NULL, amount INTEGER NOT NULL, kind TEXT NOT NULL, reference TEXT NOT NULL, PRIMARY KEY (owner_id, id))`,
@@ -29,6 +30,15 @@ let schemaReady: Promise<void> | undefined;
 async function ensureSchema() {
   schemaReady ??= (async () => {
     await db().batch(tables.map((sql) => db().prepare(sql).bind()));
+    for (const [table, columns] of [
+      ["suppliers", [["archived", "INTEGER NOT NULL DEFAULT 0"]]],
+      ["purchases", [["supplier_name", "TEXT NOT NULL DEFAULT ''"], ["invoice_number", "TEXT NOT NULL DEFAULT ''"]]],
+    ] as const) {
+      const existing = await db().prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
+      for (const [name, definition] of columns)
+        if (!existing.results.some((column) => column.name === name))
+          await db().prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`).run();
+    }
     const columns = await db().prepare("PRAGMA table_info(product_categories)").all<{ name: string }>();
     if (!columns.results.some((column) => column.name === "code"))
       await db().prepare("ALTER TABLE product_categories ADD COLUMN code TEXT").run();
@@ -45,24 +55,35 @@ async function load(ownerId: string): Promise<Stored | undefined> {
   if (!meta) return undefined;
   const categoryRows = await db().prepare("SELECT name, code FROM product_categories WHERE owner_id = ? ORDER BY position").bind(ownerId).all<{ name: string; code: string | null }>();
   const [products, suppliers, sales, purchases, expenses, movements, payments, registers, items] = await Promise.all([
-    db().prepare("SELECT id, number, name, variety, category, unit, price, cost, stock, minimum, published, image_url FROM products WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, name, phone FROM suppliers WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, total, method, cancelled FROM sales WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, supplier_id, product_id, quantity, total, paid FROM purchases WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, name, category, amount, paid FROM expenses WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, product_id, quantity, reason FROM movements WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, amount, kind, reference FROM payments WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, opened_at, opening, closed_at, counted, expected, difference, automatic FROM registers WHERE owner_id = ?").bind(ownerId).all<{ id: string; opened_at: string; opening: number; closed_at: string | null; counted: number | null; expected: number | null; difference: number | null; automatic: number }>(), db().prepare("SELECT sale_id, position, product_id, name, quantity, unit, price, cost FROM sale_items WHERE owner_id = ? ORDER BY sale_id, position").bind(ownerId).all(),
+    db().prepare("SELECT id, number, name, variety, category, unit, price, cost, stock, minimum, published, image_url FROM products WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, name, phone, archived FROM suppliers WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, total, method, cancelled FROM sales WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, supplier_id, supplier_name, invoice_number, product_id, quantity, total, paid FROM purchases WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, name, category, amount, paid FROM expenses WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, product_id, quantity, reason FROM movements WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, date, amount, kind, reference FROM payments WHERE owner_id = ?").bind(ownerId).all(), db().prepare("SELECT id, opened_at, opening, closed_at, counted, expected, difference, automatic FROM registers WHERE owner_id = ?").bind(ownerId).all<{ id: string; opened_at: string; opening: number; closed_at: string | null; counted: number | null; expected: number | null; difference: number | null; automatic: number }>(), db().prepare("SELECT sale_id, position, product_id, name, quantity, unit, price, cost FROM sale_items WHERE owner_id = ? ORDER BY sale_id, position").bind(ownerId).all(),
   ]);
+  const purchaseItems = await db().prepare("SELECT purchase_id, position, product_id, name, quantity, unit, cost, total FROM purchase_items WHERE owner_id = ? ORDER BY purchase_id, position").bind(ownerId).all<{ purchase_id: string; product_id: string; name: string; quantity: number; unit: "unit" | "kg"; cost: number; total: number }>();
+  const purchaseGroups = new Map<string, PurchaseLine[]>();
+  for (const item of purchaseItems.results) {
+    const lines = purchaseGroups.get(item.purchase_id) || [];
+    lines.push({ productId: item.product_id, name: item.name, quantity: item.quantity, unit: item.unit, cost: item.cost, total: item.total });
+    purchaseGroups.set(item.purchase_id, lines);
+  }
   const productCategories = categoryRows.results.map((category) => category.name);
   const productCategoryCodes = Object.fromEntries(categoryRows.results.filter((category) => category.code).map((category) => [category.name, category.code!])) as Record<string, string>;
   const grouped = new Map<string, any[]>();
   for (const i of items.results as any[]) grouped.set(i.sale_id, [...(grouped.get(i.sale_id) || []), { productId: i.product_id, name: i.name, quantity: i.quantity, unit: i.unit, price: i.price, cost: i.cost }]);
-  return { version: meta.revision, productCategories, productCategoryCodes, settings: { name: meta.name, whatsapp: meta.whatsapp, address: meta.address }, products: (products.results as any[]).map((p) => ({ id: p.id, number: p.number, name: p.name, variety: p.variety, category: p.category, unit: p.unit, price: p.price, cost: p.cost, stock: p.stock, minimum: p.minimum, published: Boolean(p.published), ...(p.image_url ? { imageUrl: p.image_url } : {}) })), suppliers: suppliers.results as any[], sales: (sales.results as any[]).map((s) => ({ id: s.id, date: s.date, total: s.total, method: s.method, cancelled: Boolean(s.cancelled), items: grouped.get(s.id) || [] })), purchases: (purchases.results as any[]).map((p) => ({ id: p.id, date: p.date, supplierId: p.supplier_id, productId: p.product_id, quantity: p.quantity, total: p.total, paid: p.paid })), expenses: (expenses.results as any[]).map((e) => ({ id: e.id, date: e.date, name: e.name, category: e.category, amount: e.amount, paid: Boolean(e.paid) })), movements: (movements.results as any[]).map((m) => ({ id: m.id, date: m.date, productId: m.product_id, quantity: m.quantity, reason: m.reason })), payments: payments.results as any[], registers: registers.results.map((r) => ({ id: r.id, openedAt: r.opened_at, opening: r.opening, ...(r.closed_at ? { closedAt: r.closed_at } : {}), ...(r.counted !== null ? { counted: r.counted } : {}), ...(r.expected !== null ? { expected: r.expected } : {}), ...(r.difference !== null ? { difference: r.difference } : {}), ...(r.automatic ? { automatic: true } : {}) })), completedRequests: JSON.parse(meta.completed_requests || "[]") };
+  return normalizeBusiness({ version: meta.revision, productCategories, productCategoryCodes, settings: { name: meta.name, whatsapp: meta.whatsapp, address: meta.address }, products: (products.results as any[]).map((p) => ({ id: p.id, number: p.number, name: p.name, variety: p.variety, category: p.category, unit: p.unit, price: p.price, cost: p.cost, stock: p.stock, minimum: p.minimum, published: Boolean(p.published), ...(p.image_url ? { imageUrl: p.image_url } : {}) })), suppliers: (suppliers.results as any[]).map((supplier) => ({ ...supplier, archived: Boolean(supplier.archived) })), sales: (sales.results as any[]).map((s) => ({ id: s.id, date: s.date, total: s.total, method: s.method, cancelled: Boolean(s.cancelled), items: grouped.get(s.id) || [] })), purchases: (purchases.results as any[]).map((p) => ({ id: p.id, date: p.date, supplierId: p.supplier_id, supplierName: p.supplier_name, invoiceNumber: p.invoice_number, items: purchaseGroups.get(p.id), productId: p.product_id, quantity: p.quantity, total: p.total, paid: p.paid })), expenses: (expenses.results as any[]).map((e) => ({ id: e.id, date: e.date, name: e.name, category: e.category, amount: e.amount, paid: Boolean(e.paid) })), movements: (movements.results as any[]).map((m) => ({ id: m.id, date: m.date, productId: m.product_id, quantity: m.quantity, reason: m.reason })), payments: payments.results as any[], registers: registers.results.map((r) => ({ id: r.id, openedAt: r.opened_at, opening: r.opening, ...(r.closed_at ? { closedAt: r.closed_at } : {}), ...(r.counted !== null ? { counted: r.counted } : {}), ...(r.expected !== null ? { expected: r.expected } : {}), ...(r.difference !== null ? { difference: r.difference } : {}), ...(r.automatic ? { automatic: true } : {}) })), completedRequests: JSON.parse(meta.completed_requests || "[]") });
 }
 
-function replaceStatements(ownerId: string, b: Stored): Statement[] {
+function replaceStatements(ownerId: string, original: Stored): Statement[] {
+  const b = normalizeBusiness(original);
   const categoryCodes = getProductCategoryCodes(b);
   const categoryStatements = [db().prepare("DELETE FROM product_categories WHERE owner_id = ?").bind(ownerId),
     ...getProductCategories(b).map((name, position) => db().prepare("INSERT INTO product_categories (owner_id, position, name, code) VALUES (?, ?, ?, ?)").bind(ownerId, position, name, categoryCodes[name]))];
-  const out: Statement[] = [...["products", "suppliers", "sales", "sale_items", "purchases", "expenses", "movements", "payments", "registers"].map((table) => db().prepare(`DELETE FROM ${table} WHERE owner_id = ?`).bind(ownerId)), db().prepare("INSERT INTO business_meta (owner_id, revision, name, whatsapp, address, completed_requests, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(owner_id) DO UPDATE SET revision = excluded.revision, name = excluded.name, whatsapp = excluded.whatsapp, address = excluded.address, completed_requests = excluded.completed_requests, updated_at = excluded.updated_at").bind(ownerId, b.version, b.settings.name, b.settings.whatsapp, b.settings.address, JSON.stringify(b.completedRequests || []), new Date().toISOString())];
+  const out: Statement[] = [...["products", "suppliers", "sales", "sale_items", "purchase_items", "purchases", "expenses", "movements", "payments", "registers"].map((table) => db().prepare(`DELETE FROM ${table} WHERE owner_id = ?`).bind(ownerId)), db().prepare("INSERT INTO business_meta (owner_id, revision, name, whatsapp, address, completed_requests, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(owner_id) DO UPDATE SET revision = excluded.revision, name = excluded.name, whatsapp = excluded.whatsapp, address = excluded.address, completed_requests = excluded.completed_requests, updated_at = excluded.updated_at").bind(ownerId, b.version, b.settings.name, b.settings.whatsapp, b.settings.address, JSON.stringify(b.completedRequests || []), new Date().toISOString())];
   for (const p of b.products) out.push(db().prepare("INSERT INTO products (owner_id, id, number, name, variety, category, unit, price, cost, stock, minimum, published, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(ownerId, p.id, p.number, p.name, p.variety, p.category, p.unit, p.price, p.cost, p.stock, p.minimum, p.published ? 1 : 0, p.imageUrl || null));
-  for (const s of b.suppliers) out.push(db().prepare("INSERT INTO suppliers (owner_id, id, name, phone) VALUES (?, ?, ?, ?)").bind(ownerId, s.id, s.name, s.phone));
+  for (const s of b.suppliers) out.push(db().prepare("INSERT INTO suppliers (owner_id, id, name, phone, archived) VALUES (?, ?, ?, ?, ?)").bind(ownerId, s.id, s.name, s.phone, s.archived ? 1 : 0));
   for (const s of b.sales) { out.push(db().prepare("INSERT INTO sales (owner_id, id, date, total, method, cancelled) VALUES (?, ?, ?, ?, ?, ?)").bind(ownerId, s.id, s.date, s.total, s.method, s.cancelled ? 1 : 0)); s.items.forEach((i, position) => out.push(db().prepare("INSERT INTO sale_items (owner_id, sale_id, position, product_id, name, quantity, unit, price, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(ownerId, s.id, position, i.productId, i.name, i.quantity, i.unit, i.price, i.cost))); }
-  for (const p of b.purchases) out.push(db().prepare("INSERT INTO purchases (owner_id, id, date, supplier_id, product_id, quantity, total, paid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(ownerId, p.id, p.date, p.supplierId, p.productId, p.quantity, p.total, p.paid));
+  for (const p of b.purchases) {
+    out.push(db().prepare("INSERT INTO purchases (owner_id, id, date, supplier_id, supplier_name, invoice_number, product_id, quantity, total, paid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(ownerId, p.id, p.date, p.supplierId, p.supplierName, p.invoiceNumber, p.productId, p.quantity, p.total, p.paid));
+    p.items.forEach((item, position) => out.push(db().prepare("INSERT INTO purchase_items (owner_id, purchase_id, position, product_id, name, quantity, unit, cost, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(ownerId, p.id, position, item.productId, item.name, item.quantity, item.unit, item.cost, item.total)));
+  }
   for (const e of b.expenses) out.push(db().prepare("INSERT INTO expenses (owner_id, id, date, name, category, amount, paid) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(ownerId, e.id, e.date, e.name, e.category, e.amount, e.paid ? 1 : 0));
   for (const m of b.movements) out.push(db().prepare("INSERT INTO movements (owner_id, id, date, product_id, quantity, reason) VALUES (?, ?, ?, ?, ?, ?)").bind(ownerId, m.id, m.date, m.productId, m.quantity, m.reason));
   for (const p of b.payments) out.push(db().prepare("INSERT INTO payments (owner_id, id, date, amount, kind, reference) VALUES (?, ?, ?, ?, ?, ?)").bind(ownerId, p.id, p.date, p.amount, p.kind, p.reference));
@@ -85,10 +106,10 @@ async function readUnlocked(ownerId: string, now: string): Promise<Stored> {
   if (!stored) {
     const legacy = await first<{ payload: string }>("SELECT payload FROM businesses WHERE owner_id = ?", ownerId);
     stored = legacy ? JSON.parse(legacy.payload) as Stored : createFreshBusiness();
-    stored = withRegisters(withProductNumbers(stored));
+    stored = normalizeBusiness(withRegisters(withProductNumbers(stored)));
     await save(ownerId, stored);
   }
-  stored = withRegisters(withProductNumbers(stored));
+  stored = normalizeBusiness(withRegisters(withProductNumbers(stored)));
   const closed = autoCloseRegisters(stored, now);
   if (closed !== stored) await save(ownerId, closed);
   return closed;

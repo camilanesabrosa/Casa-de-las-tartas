@@ -1,4 +1,5 @@
 "use client";
+import { SuppliersView } from "./purchases";
 import { UpdateSettings, type useDesktopUpdates } from "./updates";
 import { DriveBackupSettings, type DriveControls } from "./drive-backups";
 import { ProductCategories } from "./product-categories";
@@ -50,7 +51,7 @@ import {
   ProductEditor,
   PriceEditor,
   StockEditor,
-  PurchaseEditor,
+  ProductDelete,
   ExpenseEditor,
   PayEditor,
   SaleDetail,
@@ -88,6 +89,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
   const [editing, setEditing] = useState<Product | "new" | null>(null);
   const [stock, setStock] = useState<Product | null>(null);
   const [history, setHistory] = useState<Product | null>(null);
+  const [removing, setRemoving] = useState<Product | null>(null);
   const [manageCategories, setManageCategories] = useState(false);
   const [price, setPrice] = useState<Product | null>(null);
   const categoryNames = getProductCategories(data);
@@ -196,7 +198,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
                           ? "Reponer"
                           : "Disponible"}
                     </span>
-                    {!p.published && <small>Oculto del catálogo</small>}
+                    {p.price <= 0 && <small>Falta cargar el precio de venta</small>}
                   </TableCell>
                   <TableCell>
                     <div className="row-actions product-actions">
@@ -204,6 +206,7 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
                       <ProductAction label="Editar producto" product={p} icon={Pencil} onClick={() => setEditing(p)} />
                       <ProductAction label="Ajustar stock" product={p} icon={SlidersHorizontal} onClick={() => setStock(p)} />
                       <ProductAction label="Ver historial" product={p} icon={History} onClick={() => setHistory(p)} />
+                      <ProductAction label="Eliminar producto" product={p} icon={Trash2} onClick={() => setRemoving(p)} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -252,6 +255,9 @@ export function ProductsView({ data, save }: { data: Business; save: Save }) {
       {stock && (
         <StockEditor product={stock} save={save} close={() => setStock(null)} />
       )}{" "}
+      {removing && (
+        <ProductDelete product={removing} save={save} close={() => setRemoving(null)} />
+      )}
       {history && (
         <Modal
           title={`Movimientos · ${history.name}`}
@@ -403,110 +409,6 @@ export function SalesView({
     </>
   );
 }
-function PurchasesPanel({ data, save }: { data: Business; save: Save }) {
-  const [purchase, setPurchase] = useState(false);
-  const [pay, setPay] = useState<Business["purchases"][number] | null>(null);
-  const debt = data.purchases.reduce((a, p) => a + p.total - p.paid, 0);
-  return (
-    <>
-      <div className="view-toolbar">
-        <div>
-          <p className="muted">Total pendiente de compras</p>
-          <div className="big-number">{money(debt)}</div>
-        </div>
-        <Button
-          className="btn primary"
-          onClick={() => setPurchase(true)}
-          disabled={!data.suppliers.length || !data.products.length}
-        >
-          <ArrowDownToLine />
-          Ingresó mercadería
-        </Button>
-      </div>
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Compras y pagos</h2>
-            <p>
-              La mercadería entra una sola vez. Los pagos se registran aparte.
-            </p>
-          </div>
-        </div>
-        <div className="table-scroll">
-          <Table className="data-table">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Compra</TableHead>
-                <TableHead>Mercadería</TableHead>
-                <TableHead className="number">Total</TableHead>
-                <TableHead className="number">Pagado</TableHead>
-                <TableHead className="number">Pendiente</TableHead>
-                <TableHead>Acción</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.purchases
-                .slice()
-                .reverse()
-                .map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <strong>{p.id}</strong>
-                      <small>{displayDate(p.date)}</small>
-                    </TableCell>
-                    <TableCell>
-                      {data.products.find((pr) => pr.id === p.productId)?.name}
-                      <small>
-                        {quantityLabel(
-                          p.quantity,
-                          data.products.find((pr) => pr.id === p.productId)
-                            ?.unit || "unit",
-                        )}
-                      </small>
-                    </TableCell>
-                    <TableCell className="number">{money(p.total)}</TableCell>
-                    <TableCell className="number">{money(p.paid)}</TableCell>
-                    <TableCell className="number">
-                      {money(p.total - p.paid)}
-                    </TableCell>
-                    <TableCell>
-                      {p.paid < p.total ? (
-                        <button className="text-link" onClick={() => setPay(p)}>
-                          Registrar pago
-                        </button>
-                      ) : (
-                        <span className="status success">Pagada</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </div>
-        {!data.purchases.length && (
-          <div className="empty">
-            <p>Todavía no registraste compras.</p>
-          </div>
-        )}
-      </section>
-      {purchase && (
-        <PurchaseEditor
-          data={data}
-          save={save}
-          close={() => setPurchase(false)}
-        />
-      )}{" "}
-      {pay && (
-        <PayEditor
-          id={pay.id}
-          balance={pay.total - pay.paid}
-          save={save}
-          close={() => setPay(null)}
-        />
-      )}
-    </>
-  );
-}
 export function ExpensesView({ data, save }: { data: Business; save: Save }) {
   const [section, setSection] = useState("gastos");
   const [add, setAdd] = useState(false);
@@ -524,10 +426,10 @@ export function ExpensesView({ data, save }: { data: Business; save: Save }) {
       <Tabs value={section} onValueChange={setSection}>
         <TabsList className="section-tabs">
           <TabsTrigger value="gastos">Gastos</TabsTrigger>
-          <TabsTrigger value="compras">Compras</TabsTrigger>
+          <TabsTrigger value="compras">Compras y proveedores</TabsTrigger>
         </TabsList>
       </Tabs>
-      {section === "compras" && <PurchasesPanel data={data} save={save} />}
+      {section === "compras" && <SuppliersView data={data} save={save} />}
       {section === "gastos" && (
         <>
           <div className="view-toolbar">

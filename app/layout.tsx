@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./purchases.css";
 import "./desktop.css";
 import "./calendar.css";
 import "./updates.css";

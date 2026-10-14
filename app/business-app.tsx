@@ -1,4 +1,5 @@
 "use client";
+import { PurchaseEditor } from "./purchases";
 import { appPath } from "@/lib/paths";
 import { CalendarView } from "./calendar-view";
 import { UpdateBanner, useDesktopUpdates } from "./updates";
@@ -48,7 +49,6 @@ import {
 import {
   SaleEditor,
   CashEditor,
-  PurchaseEditor,
   RegisterOpenEditor,
   RegisterCloseEditor,
   downloadJSON,
@@ -284,12 +284,6 @@ export default function BusinessApp() {
               <Button
                 className="btn"
                 onClick={() => setPurchaseOpen(true)}
-                disabled={!data.suppliers.length || !data.products.length}
-                title={
-                  !data.suppliers.length
-                    ? "Cargá un proveedor para registrar compras."
-                    : undefined
-                }
               >
                 <ArrowDownToLine />
                 Nueva compra
