@@ -237,6 +237,7 @@ export function autoCloseRegisters<T extends Business>(original: T, now = new Da
 // efectivo y los aportes, menos lo que se pagó o retiró de la caja.
 // Transferencias y tarjeta se informan en el cierre pero no entran acá.
 export const CASH_METHOD = "Efectivo";
+export const HOME_USE_REASON = "Para la casa";
 export const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Tarjeta"] as const;
 export const isCashPayment = (p: Pick<Payment, "method">) =>
   !p.method || p.method === CASH_METHOD;

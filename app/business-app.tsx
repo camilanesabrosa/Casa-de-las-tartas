@@ -19,6 +19,7 @@ import {
   Settings,
   ArrowDownToLine,
   Wallet,
+  Home,
   Plus,
   ArrowRight,
   CalendarDays,
@@ -86,6 +87,7 @@ export default function BusinessApp() {
   const [overviewTab, setOverviewTab] = useState<OverviewTab>("sales");
   const [error, setError] = useState("");
   const [saleOpen, setSaleOpen] = useState(false);
+  const [homeUseOpen, setHomeUseOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState<"open" | "close" | null>(null);
@@ -276,6 +278,10 @@ export default function BusinessApp() {
                 <Plus />
                 Nueva venta
               </Button>
+              <Button className="btn" onClick={() => setHomeUseOpen(true)}>
+                <Home />
+                Para la casa
+              </Button>
               <Button
                 className={`btn ${caja ? "register-open" : ""}`}
                 onClick={() => setRegisterOpen(caja ? "close" : "open")}
@@ -376,6 +382,9 @@ export default function BusinessApp() {
       </div>
       {saleOpen && (
         <SaleEditor data={data} save={save} close={() => setSaleOpen(false)} />
+      )}
+      {homeUseOpen && (
+        <SaleEditor homeUse data={data} save={save} close={() => setHomeUseOpen(false)} />
       )}{" "}
       {cashOpen && <CashEditor save={save} close={() => setCashOpen(false)} />}
       {registerOpen === "close" && caja ? (

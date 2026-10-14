@@ -778,6 +778,7 @@ export function CartLines({
   cart,
   products,
   setCart,
+  showPrice = true,
 }: {
   cart: CartItem[];
   products: Pick<
@@ -785,6 +786,7 @@ export function CartLines({
     "id" | "name" | "unit" | "price" | "stock" | "variety" | "category"
   >[];
   setCart: (c: CartItem[]) => void;
+  showPrice?: boolean;
 }) {
   return (
     <div className="cart-lines">
@@ -838,7 +840,7 @@ export function CartLines({
                 />
                 <span>{p.unit === "kg" ? "g" : "un."}</span>
               </label>
-              <strong>{money(lineTotal(p.price, i.quantity))}</strong>
+              {showPrice && <strong>{money(lineTotal(p.price, i.quantity))}</strong>}
             </div>
           </div>
         );
@@ -846,14 +848,17 @@ export function CartLines({
     </div>
   );
 }
+// `homeUse`: mercadería para la casa. Mismo selector, sin precio ni cobro.
 export function SaleEditor({
   data,
   save,
   close,
+  homeUse = false,
 }: {
   data: Business;
   save: Save;
   close: () => void;
+  homeUse?: boolean;
 }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
@@ -884,7 +889,11 @@ export function SaleEditor({
     setBusy(true);
     setError("");
     try {
-      await save({ type: "sale", items: cart, method: method as "Efectivo" });
+      await save(
+        homeUse
+          ? { type: "homeUse", items: cart }
+          : { type: "sale", items: cart, method: method as "Efectivo" },
+      );
       close();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Revisá los productos.");
@@ -895,8 +904,12 @@ export function SaleEditor({
   return (
     <Modal
       wide
-      title="Nueva venta"
-      description="Elegí los productos. Para los que se venden por peso, ingresá los gramos."
+      title={homeUse ? "Para la casa" : "Nueva venta"}
+      description={
+        homeUse
+          ? "Elegí lo que se lleva la casa. Descuenta el stock sin cobrar."
+          : "Elegí los productos. Para los que se venden por peso, ingresá los gramos."
+      }
       close={close}
     >
       <div className="pos-grid">
@@ -904,7 +917,7 @@ export function SaleEditor({
           <div className="search-control">
             <Search />
             <Input
-              aria-label="Buscar productos para vender"
+              aria-label={homeUse ? "Buscar productos para la casa" : "Buscar productos para vender"}
               placeholder="Buscar producto o variedad…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -923,14 +936,16 @@ export function SaleEditor({
                   className="pos-product"
                   key={p.id}
                   onClick={() => add(p)}
-                  disabled={p.stock <= 0 || p.price <= 0 || busy}
+                  disabled={p.stock <= 0 || (!homeUse && p.price <= 0) || busy}
                 >
                   <div>
                     <strong>{p.name}</strong>
                     <small>{p.variety || p.category}</small>
-                    <span>
-                      {p.price > 0 ? `${money(p.price)} / ${p.unit === "kg" ? "kg" : "un."}` : "Cargá el precio en Productos"}
-                    </span>
+                    {!homeUse && (
+                      <span>
+                        {p.price > 0 ? `${money(p.price)} / ${p.unit === "kg" ? "kg" : "un."}` : "Cargá el precio en Productos"}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <Plus />
@@ -942,34 +957,38 @@ export function SaleEditor({
         </section>
         <section className="receipt">
           <div className="receipt-heading">
-            <h3>Detalle de la venta</h3>
+            <h3>{homeUse ? "Detalle del retiro" : "Detalle de la venta"}</h3>
             <span>{cart.length} productos</span>
           </div>
           {cart.length ? (
-            <CartLines cart={cart} products={data.products} setCart={setCart} />
+            <CartLines cart={cart} products={data.products} setCart={setCart} showPrice={!homeUse} />
           ) : (
             <div className="cart-empty">
               <ShoppingBasketIcon />
               <p>
                 Agregá productos para
                 <br />
-                comenzar la venta.
+                {homeUse ? "comenzar el retiro." : "comenzar la venta."}
               </p>
             </div>
           )}
-          <div className="receipt-total">
-            <span>Total a cobrar</span>
-            <strong>{money(total)}</strong>
-          </div>
-          <Choice
-            label="Medio de pago"
-            value={method}
-            onChange={setMethod}
-            options={["Efectivo", "Transferencia", "Tarjeta"].map((value) => ({
-              value,
-              label: value,
-            }))}
-          />
+          {!homeUse && (
+            <>
+              <div className="receipt-total">
+                <span>Total a cobrar</span>
+                <strong>{money(total)}</strong>
+              </div>
+              <Choice
+                label="Medio de pago"
+                value={method}
+                onChange={setMethod}
+                options={["Efectivo", "Transferencia", "Tarjeta"].map((value) => ({
+                  value,
+                  label: value,
+                }))}
+              />
+            </>
+          )}
           {error && (
             <p className="error-message" role="alert">
               {error}
@@ -986,12 +1005,14 @@ export function SaleEditor({
             ) : (
               <>
                 <Check />
-                Confirmar venta cobrada
+                {homeUse ? "Confirmar retiro para la casa" : "Confirmar venta cobrada"}
               </>
             )}
           </Button>
           <p className="receipt-note">
-            Confirma el cobro y descuenta el stock.
+            {homeUse
+              ? "Descuenta el stock. No registra cobro ni entra en la caja."
+              : "Confirma el cobro y descuenta el stock."}
           </p>
         </section>
       </div>

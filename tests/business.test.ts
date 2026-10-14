@@ -248,6 +248,16 @@ test("ajustar existencias reemplaza el stock actual y admite cero", () => {
   assert.equal(z.movements.at(-1)!.quantity, -(p.stock + 5000));
   assert.throws(() => applyAction(z, { type: "adjustStock", productId: "p16", stock: -1000, reason: "Merma" }));
 });
+test("para la casa descuenta stock sin registrar venta ni cobro", () => {
+  const b = createDemo();
+  const p = b.products.find((p) => p.id === "p16")!;
+  const n = applyAction(b, { type: "homeUse", items: [{ productId: "p16", quantity: 250 }] });
+  assert.equal(n.products.find((p) => p.id === "p16")!.stock, p.stock - 250);
+  assert.deepEqual(n.movements.at(-1)!, { ...n.movements.at(-1)!, productId: "p16", quantity: -250, reason: "Para la casa" });
+  assert.deepEqual(n.sales, b.sales);
+  assert.deepEqual(n.payments, b.payments);
+  assert.throws(() => applyAction(n, { type: "homeUse", items: [{ productId: "p16", quantity: p.stock }] }), /suficiente stock/);
+});
 test("eliminar un producto conserva sus ventas y permite anularlas", () => {
   const b = createDemo();
   const n = applyAction(b, { type: "sale", items: [{ productId: "p16", quantity: 333 }], method: "Efectivo" });

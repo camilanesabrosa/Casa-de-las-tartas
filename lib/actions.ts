@@ -8,6 +8,7 @@ import {
   registerExpected,
   PAYMENT_METHODS,
   CASH_METHOD,
+  HOME_USE_REASON,
   getProductCategories,
   getProductCategoryCodes,
   autoCloseRegisters,
@@ -70,6 +71,14 @@ export const actionSchema = z.discriminatedUnion("type", [
     method: paymentMethod,
   }),
   z.object({ type: z.literal("cancelSale"), id: text }),
+  // Mercadería que se lleva la casa: baja el stock sin venta ni cobro.
+  z.object({
+    type: z.literal("homeUse"),
+    items: z
+      .array(z.object({ productId: text, quantity }))
+      .min(1)
+      .max(100),
+  }),
   z.object({
     type: z.literal("adjustStock"),
     productId: text,
@@ -357,6 +366,10 @@ export function applyAction(
         const p = b.products.find((p) => p.id === i.productId);
         if (p) move(p, i.quantity, `Anulación ${sale.id}`);
       }
+      break;
+    }
+    case "homeUse": {
+      for (const i of a.items) move(getProduct(i.productId), -i.quantity, HOME_USE_REASON);
       break;
     }
     case "adjustStock": {
