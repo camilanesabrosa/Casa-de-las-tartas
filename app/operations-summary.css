@@ -92,7 +92,8 @@
 .operations-table td {
   font-variant-numeric: tabular-nums;
 }
-.operations-table th small {
+.operations-table th small,
+.operations-table td small {
   display: block;
   color: var(--muted-foreground);
   font-weight: 400;

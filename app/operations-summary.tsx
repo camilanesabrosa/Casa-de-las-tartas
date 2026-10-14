@@ -8,6 +8,7 @@ import {
   type ReportPeriod,
   type PurchasedArticle,
   type StockArticle,
+  type StockCategory,
 } from "@/lib/operations-summary";
 
 const dateLabel = (day: string) =>
@@ -487,6 +488,55 @@ function StockTable({
     </Table>
   );
 }
+function StockCategoryTable({ rows }: { rows: StockCategory[] }) {
+  const max = Math.max(1, ...rows.map((row) => row.amount));
+  return (
+    <Table
+      title="Stock por categoría"
+      columns={[
+        "Categoría",
+        "Stock",
+        "Valor al costo",
+        "Artículos con stock",
+        "Para reponer",
+      ]}
+      empty={!rows.length}
+      emptyMessage="Agregá categorías en Productos y stock para verlas acá."
+    >
+      {rows.map((row) => (
+        <tr key={row.name}>
+          <th scope="row">
+            {row.name}
+            <div className="category-sales-track" aria-hidden="true">
+              <div
+                className="category-sales-bar"
+                style={{ width: `${(row.amount / max) * 100}%` }}
+              />
+            </div>
+          </th>
+          <td>
+            {[
+              row.units ? quantityLabel(row.units, "unit") : "",
+              row.grams ? quantityLabel(row.grams, "kg") : "",
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Sin stock"}
+          </td>
+          <td>
+            {money(row.amount)}
+            {row.missingCosts > 0 && (
+              <small>{row.missingCosts} sin costo</small>
+            )}
+          </td>
+          <td>
+            {row.inStock} de {row.articles}
+          </td>
+          <td>{row.low || "—"}</td>
+        </tr>
+      ))}
+    </Table>
+  );
+}
 export function StockOverview({
   data,
   today,
@@ -496,9 +546,9 @@ export function StockOverview({
   today: string;
   navigate: (view: string) => void;
 }) {
-  const [mode, setMode] = useState<"restock" | "quantity" | "value" | "idle">(
-    "restock",
-  );
+  const [mode, setMode] = useState<
+    "restock" | "category" | "quantity" | "value" | "idle"
+  >("restock");
   const report = stockSummary(data, today);
   return (
     <div className="operations-overview">
@@ -535,16 +585,20 @@ export function StockOverview({
             <h2>
               {mode === "restock"
                 ? "Qué hace falta reponer"
-                : mode === "quantity"
-                  ? "Qué tenemos más"
-                  : mode === "value"
-                    ? "Dónde se concentra el stock"
-                    : "Artículos sin ventas recientes"}
+                : mode === "category"
+                  ? "Stock por categoría"
+                  : mode === "quantity"
+                    ? "Qué tenemos más"
+                    : mode === "value"
+                      ? "Dónde se concentra el stock"
+                      : "Artículos sin ventas recientes"}
             </h2>
             <p>
               {mode === "idle"
                 ? "Con existencias y sin ventas en los últimos 30 días."
-                : "Usá los mínimos de cada producto para planificar las compras."}
+                : mode === "category"
+                  ? "Lo que queda en cada categoría y cuánto vale al costo."
+                  : "Usá los mínimos de cada producto para planificar las compras."}
             </p>
           </div>
         </div>
@@ -554,6 +608,7 @@ export function StockOverview({
           label="Análisis de stock"
           options={[
             ["restock", "Reposición"],
+            ["category", "Por categoría"],
             ["quantity", "Más existencias"],
             ["value", "Mayor valor"],
             ["idle", "Sin ventas (30 días)"],
@@ -575,6 +630,16 @@ export function StockOverview({
               La cantidad sugerida alcanza el mínimo configurado. La cobertura
               divide el stock por el promedio diario vendido en los últimos 30
               días; es una referencia, no un pronóstico.
+            </p>
+          </>
+        )}
+        {mode === "category" && (
+          <>
+            <StockCategoryTable rows={report.byCategory} />
+            <p className="operations-note">
+              Ordenado por valor al costo. La barra compara ese valor entre
+              categorías. Las cantidades separan unidades y kilos; «Para
+              reponer» cuenta los artículos en su mínimo o por debajo.
             </p>
           </>
         )}
