@@ -9,6 +9,8 @@ import {
   PAYMENT_METHODS,
   CASH_METHOD,
   HOME_USE_REASON,
+  cleanText,
+  sameText,
   getProductCategories,
   getProductCategoryCodes,
   autoCloseRegisters,
@@ -16,12 +18,14 @@ import {
 } from "./business";
 const amount = z.number().int().min(0).max(100_000_000_000);
 const quantity = z.number().int().positive().max(1_000_000_000);
-const text = z.string().trim().min(1).max(160);
+const spaced = (value: unknown) => typeof value === "string" ? cleanText(value) : value;
+const text = z.preprocess(spaced, z.string().min(1).max(160));
+const words = (max: number) => z.preprocess(spaced, z.string().max(max));
 const paymentMethod = z.enum(PAYMENT_METHODS);
-const supplierFields = { name: text, phone: z.string().trim().max(40) };
+const supplierFields = { name: text, phone: words(40) };
 const purchaseProduct = z.object({
   name: text,
-  variety: z.string().trim().max(160).default(""),
+  variety: words(160).default(""),
   category: text.default("Varios"),
   unit: z.enum(["unit", "kg"]),
 });
@@ -38,7 +42,7 @@ const productSchema = z.object({
     .min(1, "El número del cartel debe ser 1 o mayor.")
     .max(999, "El número del cartel no puede pasar de 999."),
   name: text,
-  variety: z.string().trim().max(160),
+  variety: words(160),
   category: text,
   unit: z.enum(["unit", "kg"]),
   price: amount.refine((n) => n > 0, "El precio debe ser mayor que cero."),
@@ -97,7 +101,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     supplierId: text.optional(),
     supplier: z.object(supplierFields).optional(),
     date: purchaseDate.optional(),
-    invoiceNumber: z.string().trim().max(80).default(""),
+    invoiceNumber: words(80).default(""),
     productId: text.optional(),
     quantity: quantity.optional(),
     cost: amount.refine((n) => n > 0).optional(),
@@ -148,7 +152,7 @@ export const actionSchema = z.discriminatedUnion("type", [
         /^$|^\d{8,15}$/,
         "Ingresá el número completo, sin +, espacios ni guiones.",
       ),
-    address: z.string().trim().max(250),
+    address: words(250),
   }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
@@ -196,9 +200,9 @@ export function applyAction(
       b.payments.push({ id: id("P"), date: now, amount, kind, reference, ...(method ? { method } : {}) });
   };
   const categoryName = (name: string) => {
-    if (name.toLocaleLowerCase("es-AR") === "todos")
+    if (sameText(name, "todos"))
       throw new Error('Usá otro nombre de categoría. "Todos" se usa para mostrar todos los productos.');
-    const existing = b.productCategories!.find((category) => category.toLocaleLowerCase("es-AR") === name.toLocaleLowerCase("es-AR"));
+    const existing = b.productCategories!.find((category) => sameText(category, name));
     if (existing) return existing;
     if (b.productCategories!.length >= 100) throw new Error("Podés guardar hasta 100 categorías.");
     b.productCategories!.push(name);
@@ -206,7 +210,7 @@ export function applyAction(
     return name;
   };
   const existingCategory = (name: string) => {
-    const existing = b.productCategories!.find((category) => category.toLocaleLowerCase("es-AR") === name.toLocaleLowerCase("es-AR"));
+    const existing = b.productCategories!.find((category) => sameText(category, name));
     if (!existing) throw new Error("No encontramos esa categoría. Actualizá los datos.");
     return existing;
   };
@@ -233,15 +237,15 @@ export function applyAction(
   };
   switch (a.type) {
     case "productCategory":
-      if (b.productCategories.some((name) => name.toLocaleLowerCase("es-AR") === a.name.toLocaleLowerCase("es-AR")))
+      if (b.productCategories.some((name) => sameText(name, a.name)))
         throw new Error("Esa categoría ya existe.");
       categoryName(a.name);
       if (a.code) assignCategoryCode(a.name, a.code);
       break;
     case "renameProductCategory": {
       const oldName = existingCategory(a.name);
-      if (a.newName.toLocaleLowerCase("es-AR") === "todos") throw new Error('Usá otro nombre de categoría. "Todos" se usa para mostrar todos los productos.');
-      if (b.productCategories.some((name) => name !== oldName && name.toLocaleLowerCase("es-AR") === a.newName.toLocaleLowerCase("es-AR")))
+      if (sameText(a.newName, "todos")) throw new Error('Usá otro nombre de categoría. "Todos" se usa para mostrar todos los productos.');
+      if (b.productCategories.some((name) => name !== oldName && sameText(name, a.newName)))
         throw new Error("Esa categoría ya existe.");
       b.productCategories = b.productCategories.map((name) => name === oldName ? a.newName : name);
       b.productCategoryCodes = Object.fromEntries(Object.entries(b.productCategoryCodes).map(([name, code]) => [name === oldName ? a.newName : name, code]));
@@ -410,7 +414,7 @@ export function applyAction(
       if (!supplier || supplier.archived)
         throw new Error("Seleccioná un proveedor activo.");
       if (a.invoiceNumber && b.purchases.some((p) =>
-        p.supplierId === supplier.id && p.invoiceNumber.toLowerCase() === a.invoiceNumber.toLowerCase()))
+        p.supplierId === supplier.id && sameText(p.invoiceNumber, a.invoiceNumber)))
         throw new Error("Ya registraste ese comprobante para este proveedor.");
       const inputItems = a.items ?? (a.productId && a.quantity && a.cost ? [{ productId: a.productId, quantity: a.quantity, cost: a.cost }] : []);
       if (!inputItems.length) throw new Error("Agregá al menos un artículo.");
@@ -420,8 +424,7 @@ export function applyAction(
         else {
           if (b.products.length >= 500) throw new Error("Esta muestra admite hasta 500 variedades de productos.");
           const fresh = item.product;
-          if (b.products.some((p) => p.name.toLowerCase() === fresh.name.toLowerCase()
-            && p.variety.toLowerCase() === fresh.variety.toLowerCase()))
+          if (b.products.some((p) => sameText(p.name, fresh.name) && sameText(p.variety, fresh.variety)))
             throw new Error(`Ya existe ${fresh.name}. Seleccionalo en la lista de productos.`);
           const category = categoryName(fresh.category);
           const used = new Set(b.products.filter((p) => p.category === category).map((p) => p.number));

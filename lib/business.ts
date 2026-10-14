@@ -237,6 +237,10 @@ export function autoCloseRegisters<T extends Business>(original: T, now = new Da
 // efectivo y los aportes, menos lo que se pagó o retiró de la caja.
 // Transferencias y tarjeta se informan en el cierre pero no entran acá.
 export const CASH_METHOD = "Efectivo";
+// Nombres tal como se guardan: sin espacios en los extremos ni repetidos.
+export const cleanText = (value: string) => value.replace(/\s+/g, " ").trim();
+export const sameText = (a: string, b: string) =>
+  cleanText(a).toLocaleLowerCase("es-AR") === cleanText(b).toLocaleLowerCase("es-AR");
 export const HOME_USE_REASON = "Para la casa";
 export const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Tarjeta"] as const;
 export const isCashPayment = (p: Pick<Payment, "method">) =>

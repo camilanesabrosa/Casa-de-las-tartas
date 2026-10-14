@@ -248,6 +248,20 @@ test("ajustar existencias reemplaza el stock actual y admite cero", () => {
   assert.equal(z.movements.at(-1)!.quantity, -(p.stock + 5000));
   assert.throws(() => applyAction(z, { type: "adjustStock", productId: "p16", stock: -1000, reason: "Merma" }));
 });
+test("los nombres se guardan sin espacios de más", () => {
+  const b = createDemo();
+  const p = applyAction(b, { type: "product", product: { ...b.products[0], name: "  Tarta   de  jamón ", variety: " Grande  " } });
+  assert.equal(p.products.find((x) => x.id === b.products[0].id)!.name, "Tarta de jamón");
+  assert.equal(p.products.find((x) => x.id === b.products[0].id)!.variety, "Grande");
+  const s = applyAction(p, { type: "supplier", name: " Don   Pepe ", phone: " 261  555 " });
+  assert.deepEqual(s.suppliers.at(-1), { ...s.suppliers.at(-1)!, name: "Don Pepe", phone: "261 555" });
+  const e = applyAction(s, { type: "expense", name: "Luz \t del  local", category: "Fijo", amount: 100, paid: false });
+  assert.equal(e.expenses.at(-1)!.name, "Luz del local");
+  const c = applyAction(e, { type: "productCategory", name: "  Postres   fríos " });
+  assert.ok(c.productCategories!.includes("Postres fríos"));
+  assert.throws(() => applyAction(c, { type: "productCategory", name: "postres  FRÍOS" }), /ya existe/);
+  assert.throws(() => applyAction(c, { type: "supplier", name: "   ", phone: "" }));
+});
 test("para la casa descuenta stock sin registrar venta ni cobro", () => {
   const b = createDemo();
   const p = b.products.find((p) => p.id === "p16")!;
