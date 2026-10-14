@@ -530,7 +530,7 @@ export function SuppliersView({ data: original, save }: { data: Business; save: 
     .sort((a, b) => b.date.localeCompare(a.date));
   const accounts = new Map<
     string,
-    { total: number; paid: number; count: number }
+    { total: number; paid: number; count: number; latest?: string }
   >();
   for (const purchase of data.purchases) {
     const account = accounts.get(purchase.supplierId) || {
@@ -541,6 +541,9 @@ export function SuppliersView({ data: original, save }: { data: Business; save: 
     account.total += purchase.total;
     account.paid += purchase.paid;
     account.count++;
+    if (!account.latest || Date.parse(purchase.date) > Date.parse(account.latest)) {
+      account.latest = purchase.date;
+    }
     accounts.set(purchase.supplierId, account);
   }
   const total = purchases.reduce((sum, p) => sum + p.total, 0);
@@ -584,19 +587,24 @@ export function SuppliersView({ data: original, save }: { data: Business; save: 
               total: 0,
               paid: 0,
               count: 0,
+              latest: undefined,
             };
             return (
               <article
                 key={supplier.id}
                 className="panel supplier-card supplier-account"
               >
-                <div className="supplier-heading">
-                  <h3>{supplier.name}</h3>
-                  {supplier.archived && <span className="status">De baja</span>}
+                <div className="supplier-contact">
+                  <div className="supplier-heading">
+                    <h3>{supplier.name}</h3>
+                    {supplier.archived && <span className="status">De baja</span>}
+                  </div>
+                  <p className="muted">{supplier.phone || "Sin teléfono cargado"}</p>
+                  <p className="supplier-history-meta">
+                    {account.count ? `${account.count} ${account.count === 1 ? "compra" : "compras"}` : "Sin compras registradas"}
+                    {account.latest && ` · Última: ${invoiceDate(account.latest)}`}
+                  </p>
                 </div>
-                <p className="muted">
-                  {supplier.phone || "Sin teléfono cargado"}
-                </p>
                 <dl className="supplier-amounts">
                   <div>
                     <dt>Total comprado</dt>
@@ -606,11 +614,11 @@ export function SuppliersView({ data: original, save }: { data: Business; save: 
                     <dt>Total pagado</dt>
                     <dd>{money(account.paid)}</dd>
                   </div>
+                  <div className="supplier-pending">
+                    <dt>Pendiente</dt>
+                    <dd>{money(account.total - account.paid)}</dd>
+                  </div>
                 </dl>
-                <div className="supplier-balance">
-                  <span>Pendiente</span>
-                  <strong>{money(account.total - account.paid)}</strong>
-                </div>
                 <div className="supplier-actions">
                   <Button
                     className="btn"
